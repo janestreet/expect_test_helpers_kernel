@@ -42,10 +42,22 @@ module type S = sig
       serializations that fail to round-trip, and for any bin-io serializations that
       exceed [max_binable_length]. *)
   val print_and_check_stable_type
-    :  ?cr                 : string (** default is ["CR"] *)
+    :  ?cr                 : string (** default is ["CR"]          *)
+    -> ?hide_positions     : bool   (** default is [false]         *)
     -> ?max_binable_length : int    (** default is [Int.max_value] *)
     -> Source_code_position.t
     -> (module Stable_without_comparator with type t = 'a)
+    -> 'a list
+    -> unit
+
+  (** [print_and_check_stable_int63able_type] works like [print_and_check_stable_type],
+      and includes [Int63.t] serializations. *)
+  val print_and_check_stable_int63able_type
+    :  ?cr                 : string (** default is ["CR"]          *)
+    -> ?hide_positions     : bool   (** default is [false]         *)
+    -> ?max_binable_length : int    (** default is [Int.max_value] *)
+    -> Source_code_position.t
+    -> (module Stable_int63able with type t = 'a)
     -> 'a list
     -> unit
 
@@ -62,7 +74,8 @@ module type S = sig
       [max_binable_length].  This is useful for ensuring that serializations fit in some
       required size, e.g. an ethernet MTU. *)
   val print_bin_ios_with_max
-    :  ?cr : string (** default is ["CR"] *)
+    :  ?cr             : string (** default is ["CR"] *)
+    -> ?hide_positions : bool   (** default is [false] *)
     -> Source_code_position.t
     -> (module Print_bin_ios_with_max_arg with type t = 'a)
     -> 'a list
@@ -82,7 +95,8 @@ module type S = sig
       too voluminous.  [if_false_then_print_s] is lazy to avoid construction of the sexp
       except when needed. *)
   val require
-    :  ?cr                    : string  (** default is ["CR"] *)
+    :  ?cr             : string (** default is ["CR"]  *)
+    -> ?hide_positions : bool   (** default is [false] *)
     -> ?if_false_then_print_s : Sexp.t Lazy.t
     -> Source_code_position.t
     -> bool
@@ -103,7 +117,8 @@ module type S = sig
       mistakes like incomplete partial application that silently would not raise, but for
       the wrong reason. *)
   val require_does_not_raise
-    :  ?cr : string (** default is ["CR"] *)
+    :  ?cr             : string (** default is ["CR"]  *)
+    -> ?hide_positions : bool   (** default is [false] *)
     -> Source_code_position.t
     -> (unit -> unit)
     -> unit
@@ -132,7 +147,8 @@ module type S = sig
       printed along with a CR comment.  If [f] returns a value that should be ignored, you
       should use the idiom as described above for [show_allocation]. *)
   val require_no_allocation
-    :  ?cr : string (** default is ["CR"] *)
+    :  ?cr             : string (** default is ["CR"] *)
+    -> ?hide_positions : bool   (** default is [false] *)
     -> Source_code_position.t
     -> (unit -> 'a)
     -> 'a

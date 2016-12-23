@@ -5,6 +5,8 @@
     core_kernel
     re.pcre
     sexp_pretty
-    ))))
+    ))
+  (js_of_ocaml())
+  ))
 
 (enforce_style ())

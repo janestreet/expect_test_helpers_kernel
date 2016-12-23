@@ -37,14 +37,15 @@ let%expect_test "[print_and_check_stable_type] with broken round-trip" =
         let of_binable = of_serializeable
       end)
   end in
-  print_and_check_stable_type [%here] ~cr:"C_R" (module Broken) [ 42; 23 ];
+  print_and_check_stable_type [%here] ~cr:"C_R" ~hide_positions:true (module Broken)
+    [ 42; 23 ];
   [%expect {|
     (bin_shape_digest d9a8da25d5656b016fb4dbdc2e4197fb)
     ((sexp   42)
      (bin_io "\00242"))
     ((sexp   23)
      (bin_io "\00223"))
-    (* C_R require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:40:30.
+    (* C_R require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL.
        Do not 'X' this CR; instead make the required property true,
        which will make the CR disappear.  For more information, see
        [Expect_test_helpers.Helpers.require]. *)
@@ -52,7 +53,7 @@ let%expect_test "[print_and_check_stable_type] with broken round-trip" =
       (original       23)
       (sexp           23)
       (sexp_roundtrip 42))
-    (* C_R require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:40:30.
+    (* C_R require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL.
        Do not 'X' this CR; instead make the required property true,
        which will make the CR disappear.  For more information, see
        [Expect_test_helpers.Helpers.require]. *)
@@ -63,7 +64,8 @@ let%expect_test "[print_and_check_stable_type] with broken round-trip" =
 ;;
 
 let%expect_test "[print_and_check_stable_type] with exceeded max-length" =
-  print_and_check_stable_type [%here] ~cr:"C_R" (module Int) [ 0; Int.max_value ]
+  print_and_check_stable_type [%here] ~cr:"C_R" ~hide_positions:true (module Int)
+    [ 0; Int.max_value ]
     ~max_binable_length:1;
   [%expect {|
     (bin_shape_digest 698cfa4093fe5e51523842d37b92aeac)
@@ -71,7 +73,7 @@ let%expect_test "[print_and_check_stable_type] with exceeded max-length" =
      (bin_io "\000"))
     ((sexp   4611686018427387903)
      (bin_io "\252\255\255\255\255\255\255\255?"))
-    (* C_R require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:66:30.
+    (* C_R require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL.
        Do not 'X' this CR; instead make the required property true,
        which will make the CR disappear.  For more information, see
        [Expect_test_helpers.Helpers.require]. *)
@@ -87,12 +89,13 @@ let%expect_test "[print_and_check_stable_type] with conversion that raises" =
     type t = int [@@deriving sexp, bin_io]
     let compare x y = raise_s [%message "compare" (x : int) (y : int)]
   end in
-  print_and_check_stable_type [%here] ~cr:"C_R" (module Broken) [ 1; 2; 3 ];
+  print_and_check_stable_type [%here] ~cr:"C_R" ~hide_positions:true (module Broken)
+    [ 1; 2; 3 ];
   [%expect {|
     (bin_shape_digest 698cfa4093fe5e51523842d37b92aeac)
     ((sexp   1)
      (bin_io "\001"))
-    (* C_R require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:90:30.
+    (* C_R require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL.
        Do not 'X' this CR; instead make the required property true,
        which will make the CR disappear.  For more information, see
        [Expect_test_helpers.Helpers.require]. *)
@@ -118,7 +121,7 @@ let%expect_test "[print_bin_ios]" =
 ;;
 
 let%expect_test "[print_bin_ios_with_max]" =
-  print_bin_ios_with_max [%here] ~cr:"C_R"
+  print_bin_ios_with_max [%here] ~cr:"C_R" ~hide_positions:true
     (module struct
       include Int
       let max_binable_length = 1
@@ -130,7 +133,7 @@ let%expect_test "[print_bin_ios_with_max]" =
     "\021"
     "\252\254\255\255\255\255\255\255?"
     "\252\255\255\255\255\255\255\255?"
-    (* C_R require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:121:25.
+    (* C_R require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL.
        Do not 'X' this CR; instead make the required property true,
        which will make the CR disappear.  For more information, see
        [Expect_test_helpers.Helpers.require]. *)
@@ -205,17 +208,33 @@ let%expect_test "[show_allocation] shows allocation" =
       (major_words 0)) |}];
 ;;
 
+let%expect_test "[require] true prints nothing" =
+  require [%here] true;
+  [%expect {||}];
+;;
+
+let%expect_test "[require] false respects [~cr] and [~hide_positions]" =
+  require [%here] false ~cr:"C_R" ~hide_positions:true
+    ~if_false_then_print_s:(lazy [%message [%here]]);
+  [%expect {|
+    (* C_R require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL.
+       Do not 'X' this CR; instead make the required property true,
+       which will make the CR disappear.  For more information, see
+       [Expect_test_helpers.Helpers.require]. *)
+    lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL |}];
+;;
+
 let%expect_test "[require_no_allocation] ignores non-allocating functions" =
   require_no_allocation ~cr:"C_R" [%here] (fun () -> ());
   [%expect {| |}];
 ;;
 
 let%expect_test "[require_no_allocation] shows non-zero allocation" =
-  ignore (require_no_allocation ~cr:"C_R" [%here]
+  ignore (require_no_allocation ~hide_positions:true ~cr:"C_R" [%here]
             (fun () -> List.map [1; 2; 3] ~f:(fun i -> i + 1))
           : int list);
   [%expect {|
-    (* C_R require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:214:42.
+    (* C_R require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL.
        Do not 'X' this CR; instead make the required property true,
        which will make the CR disappear.  For more information, see
        [Expect_test_helpers.Helpers.require]. *)

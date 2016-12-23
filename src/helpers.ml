@@ -26,37 +26,44 @@ module Make (Print : Print) = struct
       List.fold (force expanders) ~init:string ~f:(fun ac expander -> expander ac)
   ;;
 
-  let sexp_to_string ?(hide_positions = false) sexp =
-    let string = Sexp_pretty.Pretty_print.sexp_to_string sexp in
+  let maybe_hide_positions_in_string ?(hide_positions = false) string =
     if hide_positions
     then hide_positions_in_string string
     else string
+  ;;
+
+  let sexp_to_string ?hide_positions sexp =
+    let string = Sexp_pretty.Pretty_print.sexp_to_string sexp in
+    maybe_hide_positions_in_string ?hide_positions string
   ;;
 
   let print_s ?hide_positions sexp =
     print_string (sexp_to_string ?hide_positions sexp);
   ;;
 
-  let require ?(cr = "CR") ?if_false_then_print_s here bool =
+  let require ?(cr = "CR") ?hide_positions ?if_false_then_print_s here bool =
     if not bool
     then (
       print_endline
-        (String.concat [ "(* ";cr;" require-failed: "
-                       ; here |> Source_code_position.to_string
-                       ; ".\n"
-                       ; "   Do not 'X' this CR; instead make the required property true,\n"
-                       ; "   which will make the CR disappear.  For more information, see\n"
-                       ; "   [Expect_test_helpers.Helpers.require]. *)" ]);
+        (String.concat
+           [ "(* ";cr;" require-failed: "
+           ; here |> Source_code_position.to_string
+           ; ".\n"
+           ; "   Do not 'X' this CR; instead make the required property true,\n"
+           ; "   which will make the CR disappear.  For more information, see\n"
+           ; "   [Expect_test_helpers.Helpers.require]. *)"
+           ]
+         |> maybe_hide_positions_in_string ?hide_positions);
       (match if_false_then_print_s with
        | None -> ()
-       | Some sexp -> print_s (force sexp)));
+       | Some sexp -> print_s ?hide_positions (force sexp)));
   ;;
 
-  let require_does_not_raise ?cr here f =
+  let require_does_not_raise ?cr ?hide_positions here f =
     match f () with
     | _             -> ()
     | exception exn ->
-      require ?cr here false
+      require ?cr ?hide_positions here false
         ~if_false_then_print_s:(lazy [%message "unexpectedly raised" ~_:(exn : exn)])
   ;;
 
@@ -64,6 +71,7 @@ module Make (Print : Print) = struct
 
   let print_bin_ios_internal (type a)
         ?cr
+        ?hide_positions
         ?require_bin_io_length_doesn't_exceed
         (module M : Print_bin_ios_arg with type t = a)
         (all : a list) =
@@ -98,7 +106,7 @@ module Make (Print : Print) = struct
     match require_bin_io_length_doesn't_exceed with
     | None -> ()
     | Some (maximum, here) ->
-      require ?cr here (List.is_empty failures)
+      require ?cr ?hide_positions here (List.is_empty failures)
         ~if_false_then_print_s:(lazy [%message
                                  "Maximum binable length exceeded"
                                    (maximum : int)
@@ -109,28 +117,39 @@ module Make (Print : Print) = struct
 
   let print_bin_ios_with_max
         (type a)
-        ?cr here
+        ?cr ?hide_positions here
         (module M : Print_bin_ios_with_max_arg with type t = a)
         ts =
-    print_bin_ios_internal (module M) ts ?cr
+    print_bin_ios_internal (module M) ts ?cr ?hide_positions
       ~require_bin_io_length_doesn't_exceed:(M.max_binable_length, here)
   ;;
 
-  let print_and_check_stable_type
-        (type a) ?cr ?max_binable_length here
+  module type Int63able = sig
+    type t
+    val to_int63     : t -> Int63.t
+    val of_int63_exn : Int63.t -> t
+  end
+
+  let print_and_check_stable_internal
+        (type a) ?cr ?hide_positions ?max_binable_length here
         (module M : Stable_without_comparator with type t = a)
-        list
-    =
+        (int63able : (module Int63able with type t = a) option)
+        list =
     let equal = [%compare.equal: M.t] in
-    print_s [%message
+    print_s ?hide_positions [%message
       "" ~bin_shape_digest:(Bin_prot.Shape.eval_to_digest_string M.bin_shape_t : string)];
-    require_does_not_raise ?cr here (fun () ->
+    require_does_not_raise ?cr ?hide_positions here (fun () ->
       List.iter list ~f:(fun original ->
-        let sexp = M.sexp_of_t original in
+        let sexp   = M.sexp_of_t                  original in
         let bin_io = Binable.to_string (module M) original in
-        print_s [%message (sexp : Sexp.t) (bin_io : string)];
+        let int63  = Option.map int63able ~f:(fun (module I) -> I.to_int63 original) in
+        print_s ?hide_positions [%message
+          ""
+            (sexp   : Sexp.t)
+            (bin_io : string)
+            (int63  : Int63.t sexp_option)];
         let sexp_roundtrip = M.t_of_sexp sexp in
-        require ?cr here (equal original sexp_roundtrip)
+        require ?cr ?hide_positions here (equal original sexp_roundtrip)
           ~if_false_then_print_s:
             (lazy [%message
               "sexp serialization failed to round-trip"
@@ -138,25 +157,57 @@ module Make (Print : Print) = struct
                 (sexp           : Sexp.t)
                 (sexp_roundtrip : M.t)]);
         let bin_io_roundtrip = Binable.of_string (module M) bin_io in
-        require ?cr here (equal original bin_io_roundtrip)
+        require ?cr ?hide_positions here (equal original bin_io_roundtrip)
           ~if_false_then_print_s:
             (lazy [%message
               "bin-io serialization failed to round-trip"
                 (original         : M.t)
                 (bin_io           : string)
                 (bin_io_roundtrip : M.t)]);
-        match max_binable_length with
-        | None -> ()
-        | Some max_binable_length ->
-          let bin_io_length = String.length bin_io in
-          require ?cr here (bin_io_length <= max_binable_length)
-            ~if_false_then_print_s:
-              (lazy [%message
-                "bin-io serialization exceeds max binable length"
-                  (original           : M.t)
-                  (bin_io             : string)
-                  (bin_io_length      : int)
-                  (max_binable_length : int)])))
+        begin
+          match max_binable_length with
+          | None -> ()
+          | Some max_binable_length ->
+            let bin_io_length = String.length bin_io in
+            require ?cr ?hide_positions here (bin_io_length <= max_binable_length)
+              ~if_false_then_print_s:
+                (lazy [%message
+                  "bin-io serialization exceeds max binable length"
+                    (original           : M.t)
+                    (bin_io             : string)
+                    (bin_io_length      : int)
+                    (max_binable_length : int)])
+        end;
+        begin
+          match int63able with
+          | None            -> ()
+          | Some (module I) ->
+            let int63           = Option.value_exn int63 in
+            let int63_roundtrip = I.of_int63_exn   int63 in
+            require ?cr ?hide_positions here (equal original int63_roundtrip)
+              ~if_false_then_print_s:
+                (lazy [%message
+                  "int63 serialization failed to round-trip"
+                    (original        : M.t)
+                    (int63           : Int63.t)
+                    (int63_roundtrip : M.t)])
+        end))
+  ;;
+
+  let print_and_check_stable_type
+        (type a) ?cr ?hide_positions ?max_binable_length here
+        (module M : Stable_without_comparator with type t = a)
+        list =
+    print_and_check_stable_internal ?cr ?hide_positions ?max_binable_length
+      here (module M) None list
+  ;;
+
+  let print_and_check_stable_int63able_type
+        (type a) ?cr ?hide_positions ?max_binable_length here
+        (module M : Stable_int63able with type t = a)
+        list =
+    print_and_check_stable_internal ?cr ?hide_positions ?max_binable_length
+      here (module M) (Some (module M)) list
   ;;
 
   let show_raise (type a) ?hide_positions (f : unit -> a) =
@@ -186,7 +237,7 @@ module Make (Print : Print) = struct
 
   (* We disable inlining for [require_no_allocation] so the GC stats and the call to [f]
      are never rearranged. *)
-  let [@inline never] require_no_allocation ?cr src f =
+  let [@inline never] require_no_allocation ?cr ?hide_positions src f =
     let minor_words_before = Gc.minor_words () in
     let major_words_before = Gc.major_words () in
     (* We wrap [f ()] with [Sys.opaque_identity] to prevent the return value from being
@@ -194,7 +245,7 @@ module Make (Print : Print) = struct
     let x = Sys.opaque_identity (f ()) in
     let minor_words_after = Gc.minor_words () in
     let major_words_after = Gc.major_words () in
-    require src ?cr
+    require src ?cr ?hide_positions
       (minor_words_before = minor_words_after
        && major_words_before = major_words_after)
       ~if_false_then_print_s:
