@@ -1,6 +1,6 @@
 open! Core_kernel.Std
 
-include Helpers_intf
+include Expect_test_helpers_kernel_intf
 
 module Make (Print : Print) = struct
 

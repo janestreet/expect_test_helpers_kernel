@@ -154,7 +154,7 @@ module type S = sig
     -> 'a
 end
 
-module type Helpers = sig
+module type Expect_test_helpers_kernel = sig
   module type S = S
 
   include S
