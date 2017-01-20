@@ -215,7 +215,7 @@ module Make (Print : Print) = struct
       ignore (f () : a);
       print_s [%message "did not raise"]
     with exn ->
-      print_s ?hide_positions [%message "raised" (exn : exn)]
+      print_s ?hide_positions [%message "raised" ~_:(exn : exn)]
   ;;
 
   (* We disable inlining for [show_allocation] so the GC stats and the call to [f] are

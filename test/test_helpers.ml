@@ -191,7 +191,18 @@ let%expect_test "[show_raise], no exception" =
 let%expect_test "[show_raise], raises hiding positions" =
   show_raise ~hide_positions:true (fun () -> raise_s [%message [%here]]);
   [%expect {|
-    (raised (exn lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL)) |}]
+    (raised lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL) |}]
+;;
+
+let%expect_test "[show_raise] with a deep stack" =
+  let rec loop n =
+    if n = 0
+    then failwith "raising"
+    else 1 + loop (n - 1)
+  in
+  show_raise (fun () -> loop 13);
+  [%expect {|
+    (raised (Failure raising)) |}];
 ;;
 
 let%expect_test "[show_raise] ignores return value" =
