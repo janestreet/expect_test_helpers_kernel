@@ -1,6 +1,33 @@
 open! Core_kernel.Std
 
-include Expect_test_helpers_kernel_intf
+include (Expect_test_helpers_kernel_intf
+         : (module type of struct include Expect_test_helpers_kernel_intf end
+             with module CR := Expect_test_helpers_kernel_intf.CR))
+
+module CR = struct
+  include Expect_test_helpers_kernel_intf.CR
+
+  let message t here =
+    let cr cr =
+      String.concat
+        [ "(* ";cr;" require-failed: "
+        ; here |> Source_code_position.to_string
+        ; ".\n"
+        ; "   Do not 'X' this CR; instead make the required property true,\n"
+        ; "   which will make the CR disappear.  For more information, see\n"
+        ; "   [Expect_test_helpers.Helpers.require]. *)" ]
+    in
+    match t with
+    | CR         -> cr "CR"
+    | CR_soon    -> cr "CR-soon"
+    | CR_someday -> cr "CR-someday"
+    | Comment ->
+      String.concat
+        [ "(* require-failed: "
+        ; here |> Source_code_position.to_string
+        ; ". *)" ]
+  ;;
+end
 
 module Make (Print : Print) = struct
 
@@ -41,19 +68,11 @@ module Make (Print : Print) = struct
     print_string (sexp_to_string ?hide_positions sexp);
   ;;
 
-  let require ?(cr = "CR") ?hide_positions ?if_false_then_print_s here bool =
+  let require ?(cr = CR.CR) ?hide_positions ?if_false_then_print_s here bool =
     if not bool
     then (
-      print_endline
-        (String.concat
-           [ "(* ";cr;" require-failed: "
-           ; here |> Source_code_position.to_string
-           ; ".\n"
-           ; "   Do not 'X' this CR; instead make the required property true,\n"
-           ; "   which will make the CR disappear.  For more information, see\n"
-           ; "   [Expect_test_helpers.Helpers.require]. *)"
-           ]
-         |> maybe_hide_positions_in_string ?hide_positions);
+      print_endline (CR.message cr here
+                     |> maybe_hide_positions_in_string ?hide_positions);
       (match if_false_then_print_s with
        | None -> ()
        | Some sexp -> print_s ?hide_positions (force sexp)));
