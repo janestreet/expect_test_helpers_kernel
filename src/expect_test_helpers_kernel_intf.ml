@@ -1,4 +1,4 @@
-open! Core_kernel.Std
+open! Core_kernel
 
 module CR = struct
   type t = CR | CR_soon | CR_someday | Comment

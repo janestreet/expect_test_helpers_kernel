@@ -1,4 +1,4 @@
-open! Core_kernel.Std
+open! Core_kernel
 
 include (Expect_test_helpers_kernel_intf
          : (module type of struct include Expect_test_helpers_kernel_intf end
@@ -277,7 +277,7 @@ module Make (Print : Print) = struct
 end
 
 include Make (struct
-    open Core_kernel.Std
+    open Core_kernel
 
     let print_endline = print_endline
 
