@@ -20,6 +20,22 @@ module type Print_bin_ios_with_max_arg = sig
   val max_binable_length : int
 end
 
+module type With_containers = sig
+  type t [@@deriving sexp]
+  include Comparable with type t := t
+  include Hashable   with type t := t
+end
+
+module type With_comparable = sig
+  type t [@@deriving sexp]
+  include Comparable with type t := t
+end
+
+module type With_hashable = sig
+  type t [@@deriving compare, sexp]
+  include Hashable with type t := t
+end
+
 module type S = sig
 
   (** [hide_positions_in_string] does line-based regexp matching to replace line numbers
@@ -157,6 +173,39 @@ module type S = sig
     -> Source_code_position.t
     -> (unit -> 'a)
     -> 'a
+
+  (** [print_and_check_container_sexps] prints the sexp representation of maps, sets, hash
+      tables, and hash sets based on the given values.  For sets and hash sets, prints a
+      CR if the sexp does not correspond to a list of elements.  For maps and hash tables,
+      prints a CR if the sexp does not correspond to an association list keyed on
+      elements. *)
+  val print_and_check_container_sexps
+    :  ?cr             : CR.t (** default is [CR]    *)
+    -> ?hide_positions : bool (** default is [false] *)
+    -> Source_code_position.t
+    -> (module With_containers with type t = 'a)
+    -> 'a list
+    -> unit
+
+  (** [print_and_check_comparable_sexps] is like [print_and_check_container_sexps] for
+      maps and sets only. *)
+  val print_and_check_comparable_sexps
+    :  ?cr             : CR.t (** default is [CR]    *)
+    -> ?hide_positions : bool (** default is [false] *)
+    -> Source_code_position.t
+    -> (module With_comparable with type t = 'a)
+    -> 'a list
+    -> unit
+
+  (** [print_and_check_hashable_sexps] is like [print_and_check_container_sexps] for hash
+      tables and hash sets only. *)
+  val print_and_check_hashable_sexps
+    :  ?cr             : CR.t (** default is [CR]    *)
+    -> ?hide_positions : bool (** default is [false] *)
+    -> Source_code_position.t
+    -> (module With_hashable with type t = 'a)
+    -> 'a list
+    -> unit
 end
 
 module type Expect_test_helpers_kernel = sig

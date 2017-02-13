@@ -239,3 +239,66 @@ let%expect_test "[require_no_allocation] shows non-zero allocation" =
       (minor_words 9)
       (major_words 0)) |}];
 ;;
+
+let%expect_test "[print_and_check_container_sexps] success" =
+  print_and_check_container_sexps [%here] (module Int) [1; 10; 100];
+  [%expect {|
+    (Set (1 10 100))
+    (Map (
+      (1   0)
+      (10  1)
+      (100 2)))
+    (Hash_set (1 10 100))
+    (Table (
+      (1   0)
+      (10  1)
+      (100 2))) |}];
+;;
+
+let%expect_test "[print_and_check_container_sexps] failure" =
+  print_and_check_container_sexps ~cr:Comment ~hide_positions:true [%here]
+    (module struct
+      include Int
+      let sexp_of_t = Int.Hex.sexp_of_t
+    end)
+    [1; 10; 100];
+  [%expect {|
+    (Set (1 10 100))
+    (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
+    ("set sexp does not match sorted list sexp"
+      (set_sexp         (1   10  100))
+      (sorted_list_sexp (0x1 0xa 0x64)))
+    (Map (
+      (1   0)
+      (10  1)
+      (100 2)))
+    (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
+    ("map sexp does not match sorted alist sexp"
+     (map_sexp (
+       (1   0)
+       (10  1)
+       (100 2)))
+     (sorted_alist_sexp (
+       (0x1  0)
+       (0xa  1)
+       (0x64 2))))
+    (Hash_set (1 10 100))
+    (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
+    ("hash_set sexp does not match sorted list sexp"
+     (hash_set_sexp    (1   10  100))
+     (sorted_list_sexp (0x1 0xa 0x64)))
+    (Table (
+      (1   0)
+      (10  1)
+      (100 2)))
+    (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
+    ("table sexp does not match sorted alist sexp"
+     (table_sexp (
+       (1   0)
+       (10  1)
+       (100 2)))
+     (sorted_alist_sexp (
+       (0x1  0)
+       (0xa  1)
+       (0x64 2)))) |}];
+;;
