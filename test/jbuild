@@ -3,3 +3,5 @@
   (libraries (expect_test_helpers_kernel))))
 
 (enforce_style ())
+
+(jbuild_version jane_street)
