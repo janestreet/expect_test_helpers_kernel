@@ -129,6 +129,7 @@ module type S = sig
       [~hide_positions:true] operates as in [print_s], to make output less fragile. *)
   val show_raise
     :  ?hide_positions : bool (** default is [false] *)
+    -> ?show_backtrace : bool (** default is [false] *)
     -> (unit -> _)
     -> unit
 
@@ -140,6 +141,7 @@ module type S = sig
   val require_does_not_raise
     :  ?cr             : CR.t (** default is [CR]    *)
     -> ?hide_positions : bool (** default is [false] *)
+    -> ?show_backtrace : bool (** default is [false] *)
     -> Source_code_position.t
     -> (unit -> unit)
     -> unit

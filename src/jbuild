@@ -6,9 +6,8 @@
     re.pcre
     sexp_pretty
     ))
-  (js_of_ocaml())
+  (preprocess (pps (ppx_jane)))
   ))
 
-(enforce_style ())
 
 (jbuild_version jane_street)

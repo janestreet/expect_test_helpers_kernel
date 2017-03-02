@@ -224,6 +224,33 @@ let%expect_test "[require false] on non-comment [~cr] values includes instructio
     lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL |}];
 ;;
 
+let%expect_test "[require_does_not_raise], no exception" =
+  require_does_not_raise [%here] ~hide_positions:true (fun () -> ());
+  [%expect {| |}]
+;;
+
+let%expect_test "[require_does_not_raise], raises hiding positions" =
+  require_does_not_raise [%here] ~cr:Comment ~hide_positions:true (fun () ->
+    raise_s [%message [%here]]);
+  [%expect {|
+    (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
+    ("unexpectedly raised"
+     lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL) |}]
+;;
+
+let%expect_test "[require_does_not_raise] with a deep stack" =
+  let rec loop n =
+    if n = 0
+    then failwith "raising"
+    else 1 + loop (n - 1)
+  in
+  require_does_not_raise [%here] ~cr:Comment ~hide_positions:true (fun () ->
+    ignore (loop 13 : int));
+  [%expect {|
+    (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
+    ("unexpectedly raised" (Failure raising)) |}];
+;;
+
 let%expect_test "[require_no_allocation] ignores non-allocating functions" =
   require_no_allocation ~cr:Comment [%here] (fun () -> ());
   [%expect {| |}];

@@ -78,12 +78,30 @@ module Make (Print : Print) = struct
        | Some sexp -> print_s ?hide_positions (force sexp)));
   ;;
 
-  let require_does_not_raise ?cr ?hide_positions here f =
-    match f () with
-    | _             -> ()
-    | exception exn ->
-      require ?cr ?hide_positions here false
-        ~if_false_then_print_s:(lazy [%message "unexpectedly raised" ~_:(exn : exn)])
+  type try_with_result =
+    | Did_not_raise
+    | Raised of Sexp.t
+
+  let try_with ?(show_backtrace = false) (type a) (f : unit -> a) ~raise_message =
+    Backtrace.Exn.with_recording show_backtrace ~f:(fun () ->
+      match ignore (f () : a) with
+      | ()            -> Did_not_raise
+      | exception exn ->
+        let backtrace =
+          if not show_backtrace
+          then None
+          else Some (Backtrace.Exn.most_recent ~elide:false () |> String.split_lines)
+        in
+        Raised [%message raise_message
+                           ~_:(exn : exn)
+                           (backtrace : string list sexp_option)])
+  ;;
+
+  let require_does_not_raise ?cr ?hide_positions ?show_backtrace here f =
+    match try_with f ?show_backtrace ~raise_message:"unexpectedly raised" with
+    | Did_not_raise -> ()
+    | Raised message ->
+      require ?cr ?hide_positions here false ~if_false_then_print_s:(lazy message)
   ;;
 
   let bigstring_for_print_bin_ios = ref (Bigstring.create 1024)
@@ -229,12 +247,11 @@ module Make (Print : Print) = struct
       here (module M) (Some (module M)) list
   ;;
 
-  let show_raise (type a) ?hide_positions (f : unit -> a) =
-    try
-      ignore (f () : a);
-      print_s [%message "did not raise"]
-    with exn ->
-      print_s ?hide_positions [%message "raised" ~_:(exn : exn)]
+  let show_raise (type a) ?hide_positions ?show_backtrace (f : unit -> a) =
+    print_s ?hide_positions
+      (match try_with f ?show_backtrace ~raise_message:"raised" with
+       | Did_not_raise  -> [%message "did not raise"]
+       | Raised message -> message)
   ;;
 
   (* We disable inlining for [show_allocation] so the GC stats and the call to [f] are
