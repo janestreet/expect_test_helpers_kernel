@@ -6,7 +6,7 @@
     re.pcre
     sexp_pretty
     ))
-  (preprocess (pps (ppx_jane)))
+  (preprocess (pps (ppx_jane ppx_driver.runner)))
   ))
 
 
