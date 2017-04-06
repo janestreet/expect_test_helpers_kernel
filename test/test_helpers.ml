@@ -142,29 +142,11 @@ let%expect_test "multiple calls to [print_s] create multiple lines" =
   |}];
 ;;
 
-(* Get a sexp for the second frame of a backtrace. This frame is stable when
-   switching to and from flambda. *)
-let sexp_of_second_frame trace =
-  match [%sexp (trace : Backtrace.t)] with
-  | List (_ :: frame :: _) -> frame
-  | _ -> assert false
-
 let%expect_test "[print_s ~hide_positions:true]" =
   print_s ~hide_positions:true [%message [%here] [%here]];
   [%expect {|
-    (lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL
-     lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL) |}];
-  let rec f n =
-    if n = 0
-    then (
-      print_s ~hide_positions:true
-        (sexp_of_second_frame (Backtrace.get () ~at_most_num_frames:3));
-      0)
-    else 1 + f (n - 1)
-  in
-  ignore (f 10);
-  [%expect {|
-    "Called from file \"test_helpers.ml\", line LINE, characters C1-C2" |}];
+      (lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL
+       lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL) |}];
 ;;
 
 let%expect_test "[show_raise], no exception" =

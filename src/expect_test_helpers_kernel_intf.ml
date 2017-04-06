@@ -126,7 +126,10 @@ module type S = sig
   (** [show_raise] calls [f ()] and prints the exception that it raises, or, if it doesn't
       raise, prints [did not raise].  [show_raise] ignores the result of [f] so that one
       doesn't have to put an [ignore] inside the body of an [f] that is expected to raise.
-      [~hide_positions:true] operates as in [print_s], to make output less fragile. *)
+      [~hide_positions:true] operates as in [print_s], to make output less fragile.  Using
+      [~show_backtrace:true] will result in a CR in the expectation, but it's still
+      available here as it is still valuable when initially writing tests and
+      debugging. *)
   val show_raise
     :  ?hide_positions : bool (** default is [false] *)
     -> ?show_backtrace : bool (** default is [false] *)
