@@ -90,11 +90,11 @@ module Make (Print : Print) = struct
         let backtrace =
           if not show_backtrace
           then None
-          else Some (Backtrace.Exn.most_recent ~elide:false () |> String.split_lines)
+          else Some (Backtrace.Exn.most_recent ())
         in
         Raised [%message raise_message
                            ~_:(exn : exn)
-                           (backtrace : string list sexp_option)])
+                           (backtrace : Backtrace.t sexp_option)])
   ;;
 
   let require_does_not_raise ?cr ?hide_positions ?show_backtrace here f =
@@ -384,6 +384,6 @@ module Expect_test_config = struct
       print_s [%message
         "\
 A top-level expression in [let%expect] raised -- consider using [show_raise]"
-          ~_:(exn : exn)]
+          ~_:(exn : Exn.Never_elide_backtrace.t)]
   ;;
 end
