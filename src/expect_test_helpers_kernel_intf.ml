@@ -149,6 +149,16 @@ module type S = sig
     -> (unit -> unit)
     -> unit
 
+  (** [require_does_raise] is like [show_raise], but additionally prints a CR if the
+      function does not raise. *)
+  val require_does_raise
+    :  ?cr             : CR.t (** default is [CR]    *)
+    -> ?hide_positions : bool (** default is [false] *)
+    -> ?show_backtrace : bool (** default is [false] *)
+    -> Source_code_position.t
+    -> (unit -> _)
+    -> unit
+
   (** [show_allocation] calls [f ()] and prints out the allocations, major and minor, of
       [f].  If [f] returns a value that should be ignored, use this idiom:
 

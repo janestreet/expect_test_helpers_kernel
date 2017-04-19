@@ -9,16 +9,24 @@ let%expect_test
     (bin_shape_digest 698cfa4093fe5e51523842d37b92aeac) |}];
 ;;
 
+module Int = struct
+  include Int
+
+  (** We can't use [Int.max_value] because it depends on the architecture.  So, we use
+      [max_value_30_bits], which works on both 32-bit and 64-bit platforms. *)
+  let max_value_30_bits = 0x3FFF_FFFF
+end
+
 let%expect_test "[print_and_check_stable_type]" =
-  print_and_check_stable_type [%here] (module Int) [ 0; 21; Int.max_value ];
+  print_and_check_stable_type [%here] (module Int) [ 0; 21; Int.max_value_30_bits ];
   [%expect {|
     (bin_shape_digest 698cfa4093fe5e51523842d37b92aeac)
     ((sexp   0)
      (bin_io "\000"))
     ((sexp   21)
      (bin_io "\021"))
-    ((sexp   4611686018427387903)
-     (bin_io "\252\255\255\255\255\255\255\255?")) |}];
+    ((sexp   1073741823)
+     (bin_io "\253\255\255\255?")) |}];
 ;;
 
 let%expect_test "[print_and_check_stable_type] with broken round-trip" =
@@ -59,19 +67,19 @@ let%expect_test "[print_and_check_stable_type] with broken round-trip" =
 
 let%expect_test "[print_and_check_stable_type] with exceeded max-length" =
   print_and_check_stable_type [%here] ~cr:Comment ~hide_positions:true (module Int)
-    [ 0; Int.max_value ]
+    [ 0; Int.max_value_30_bits ]
     ~max_binable_length:1;
   [%expect {|
     (bin_shape_digest 698cfa4093fe5e51523842d37b92aeac)
     ((sexp   0)
      (bin_io "\000"))
-    ((sexp   4611686018427387903)
-     (bin_io "\252\255\255\255\255\255\255\255?"))
+    ((sexp   1073741823)
+     (bin_io "\253\255\255\255?"))
     (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
     ("bin-io serialization exceeds max binable length"
-     (original           4611686018427387903)
-     (bin_io             "\252\255\255\255\255\255\255\255?")
-     (bin_io_length      9)
+     (original           1073741823)
+     (bin_io             "\253\255\255\255?")
+     (bin_io_length      5)
      (max_binable_length 1)) |}];
 ;;
 
@@ -100,12 +108,12 @@ let%expect_test "[print_bin_ios] shows [Shape.Digest] even for empty examples" =
 ;;
 
 let%expect_test "[print_bin_ios]" =
-  print_bin_ios (module Int) [ 0; 21; Int.max_value ];
+  print_bin_ios (module Int) [ 0; 21; Int.max_value_30_bits ];
   [%expect {|
     (bin_shape_digest 698cfa4093fe5e51523842d37b92aeac)
     "\000"
     "\021"
-    "\252\255\255\255\255\255\255\255?" |}];
+    "\253\255\255\255?" |}];
 ;;
 
 let%expect_test "[print_bin_ios_with_max]" =
@@ -114,23 +122,19 @@ let%expect_test "[print_bin_ios_with_max]" =
       include Int
       let max_binable_length = 1
     end)
-    [ 0; 21; Int.max_value - 1; Int.max_value ];
+    [ 0; 21; Int.max_value_30_bits - 1; Int.max_value_30_bits ];
   [%expect {|
     (bin_shape_digest 698cfa4093fe5e51523842d37b92aeac)
     "\000"
     "\021"
-    "\252\254\255\255\255\255\255\255?"
-    "\252\255\255\255\255\255\255\255?"
+    "\253\254\255\255?"
+    "\253\255\255\255?"
     (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
     ("Maximum binable length exceeded"
       (maximum 1)
       (failures (
-        ((value         4611686018427387903)
-         (length        9)
-         (serialization "\252\255\255\255\255\255\255\255?"))
-        ((value         4611686018427387902)
-         (length        9)
-         (serialization "\252\254\255\255\255\255\255\255?"))))) |}];
+        ((value 1073741823) (length 5) (serialization "\253\255\255\255?"))
+        ((value 1073741822) (length 5) (serialization "\253\254\255\255?"))))) |}];
 ;;
 
 let%expect_test "multiple calls to [print_s] create multiple lines" =
@@ -231,6 +235,19 @@ let%expect_test "[require_does_not_raise] with a deep stack" =
   [%expect {|
     (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
     ("unexpectedly raised" (Failure raising)) |}];
+;;
+
+let%expect_test "[require_does_raise] failure" =
+  require_does_raise [%here] ~cr:Comment ~hide_positions:true (fun () -> ());
+  [%expect {|
+    (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
+    "did not raise" |}];
+;;
+
+let%expect_test "[require_does_raise] success" =
+  require_does_raise [%here] (fun () -> raise_s [%message "Boom!"]);
+  [%expect {|
+    Boom! |}];
 ;;
 
 let%expect_test "[require_no_allocation] ignores non-allocating functions" =

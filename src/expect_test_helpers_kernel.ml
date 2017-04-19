@@ -82,7 +82,11 @@ module Make (Print : Print) = struct
     | Did_not_raise
     | Raised of Sexp.t
 
-  let try_with ?(show_backtrace = false) (type a) (f : unit -> a) ~raise_message =
+  let try_with
+        ?raise_message
+        ?(show_backtrace = false)
+        (type a)
+        (f : unit -> a) =
     Backtrace.Exn.with_recording show_backtrace ~f:(fun () ->
       match ignore (f () : a) with
       | ()            -> Did_not_raise
@@ -92,9 +96,11 @@ module Make (Print : Print) = struct
           then None
           else Some (Backtrace.Exn.most_recent ())
         in
-        Raised [%message raise_message
-                           ~_:(exn : exn)
-                           (backtrace : Backtrace.t sexp_option)])
+        Raised [%message
+          ""
+            ~_:(raise_message : string sexp_option)
+            ~_:(exn : exn)
+            (backtrace : Backtrace.t sexp_option)])
   ;;
 
   let require_does_not_raise ?cr ?hide_positions ?show_backtrace here f =
@@ -103,6 +109,13 @@ module Make (Print : Print) = struct
     | Raised message ->
       require ?cr ?hide_positions here false ~if_false_then_print_s:(lazy message)
   ;;
+
+  let require_does_raise ?cr ?hide_positions ?show_backtrace here f =
+    match try_with f ?show_backtrace with
+    | Raised message -> print_s message
+    | Did_not_raise  ->
+      require ?cr ?hide_positions here false
+        ~if_false_then_print_s:(lazy [%message "did not raise"])
 
   let bigstring_for_print_bin_ios = ref (Bigstring.create 1024)
 
