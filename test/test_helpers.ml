@@ -9,14 +9,6 @@ let%expect_test
     (bin_shape_digest 698cfa4093fe5e51523842d37b92aeac) |}];
 ;;
 
-module Int = struct
-  include Int
-
-  (** We can't use [Int.max_value] because it depends on the architecture.  So, we use
-      [max_value_30_bits], which works on both 32-bit and 64-bit platforms. *)
-  let max_value_30_bits = 0x3FFF_FFFF
-end
-
 let%expect_test "[print_and_check_stable_type]" =
   print_and_check_stable_type [%here] (module Int) [ 0; 21; Int.max_value_30_bits ];
   [%expect {|
