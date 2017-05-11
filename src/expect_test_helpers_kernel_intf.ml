@@ -1,5 +1,12 @@
 open! Core_kernel
 
+module Allocation_limit = struct
+  type t =
+    | Major_words of int
+    | Minor_words of int
+  [@@deriving sexp_of]
+end
+
 module CR = struct
   type t = CR | CR_soon | CR_someday | Comment
   [@@deriving sexp_of]
@@ -159,8 +166,13 @@ module type S = sig
     -> (unit -> _)
     -> unit
 
-  (** [show_allocation] calls [f ()] and prints out the allocations, major and minor, of
-      [f].  If [f] returns a value that should be ignored, use this idiom:
+  (** [require_allocation_does_not_exceed] is a specialized form of [require] that only
+      produces output when [f ()] allocates more than the given limits.  The output will
+      include the actual number of major and minor words allocated.  We do NOT include
+      these numbers in the successful case because those numbers are not stable with
+      respect to compiler versions and build flags.
+
+      If [f] returns a value that should be ignored, use this idiom:
 
       {[
         ignore (show_allocation f : t)
@@ -176,15 +188,19 @@ module type S = sig
       advantage of the fact that the result is ignored, and eliminate allocation that is
       intended to be measured.  With the former idiom, the compiler cannot do such
       optimization and must compute the result of [f ()]. *)
-  val show_allocation : (unit -> 'a) -> 'a
+  val require_allocation_does_not_exceed
+    :  ?cr             : CR.t  (** default is [CR]    *)
+    -> ?hide_positions : bool  (** default is [false] *)
+    -> Allocation_limit.t
+    -> Source_code_position.t
+    -> (unit -> 'a)
+    -> 'a
 
-  (** [require_no_allocation f] combines [show_allocation] with [require].  If [f] does
-      not allocate, nothing is printed.  If [f] allocates, a summary of the allocation is
-      printed along with a CR comment.  If [f] returns a value that should be ignored, you
-      should use the idiom as described above for [show_allocation]. *)
+  (** [require_no_allocation here f] is equivalent to [require_allocation_does_not_exceed
+      (Minor_words 0) here f]. *)
   val require_no_allocation
-    :  ?cr             : CR.t (** default is [CR]    *)
-    -> ?hide_positions : bool (** default is [false] *)
+    :  ?cr             : CR.t  (** default is [CR]    *)
+    -> ?hide_positions : bool  (** default is [false] *)
     -> Source_code_position.t
     -> (unit -> 'a)
     -> 'a
@@ -227,6 +243,8 @@ module type Expect_test_helpers_kernel = sig
   module type S = S
 
   include S
+
+  module Allocation_limit : module type of struct include Allocation_limit end
 
   module CR : module type of struct include CR end
 

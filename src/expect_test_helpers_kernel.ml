@@ -2,7 +2,24 @@ open! Core_kernel
 
 include (Expect_test_helpers_kernel_intf
          : (module type of struct include Expect_test_helpers_kernel_intf end
+             with module Allocation_limit :=
+               Expect_test_helpers_kernel_intf.Allocation_limit
              with module CR := Expect_test_helpers_kernel_intf.CR))
+
+module Allocation_limit = struct
+  include Expect_test_helpers_kernel_intf.Allocation_limit
+
+  let is_ok t ~major_words_allocated ~minor_words_allocated =
+    match t with
+    | Major_words n -> major_words_allocated <= n
+    | Minor_words n -> major_words_allocated = 0 && minor_words_allocated <= n
+  ;;
+
+  let show_major_words = function
+    | Major_words _ -> true
+    | Minor_words _ -> false
+  ;;
+end
 
 module CR = struct
   include Expect_test_helpers_kernel_intf.CR
@@ -267,9 +284,14 @@ module Make (Print : Print) = struct
        | Raised message -> message)
   ;;
 
-  (* We disable inlining for [show_allocation] so the GC stats and the call to [f] are
-     never rearranged. *)
-  let [@inline never] show_allocation f =
+  (* We disable inlining for [require_allocation_does_not_exceed] so the GC stats and the
+     call to [f] are never rearranged. *)
+  let [@inline never] require_allocation_does_not_exceed
+        ?cr
+        ?hide_positions
+        allocation_limit
+        here
+        f =
     let minor_words_before = Gc.minor_words () in
     let major_words_before = Gc.major_words () in
     (* We wrap [f ()] with [Sys.opaque_identity] to prevent the return value from being
@@ -277,32 +299,29 @@ module Make (Print : Print) = struct
     let x = Sys.opaque_identity (f ()) in
     let minor_words_after = Gc.minor_words () in
     let major_words_after = Gc.major_words () in
-    print_s [%message
-      "allocated"
-        ~minor_words:(minor_words_after - minor_words_before : int)
-        ~major_words:(major_words_after - major_words_before : int)];
+    let major_words_allocated = major_words_after - major_words_before in
+    let minor_words_allocated = minor_words_after - minor_words_before in
+    require here ?cr ?hide_positions
+      (Allocation_limit.is_ok allocation_limit
+         ~major_words_allocated ~minor_words_allocated)
+      ~if_false_then_print_s:
+        (lazy (
+           let major_words_allocated =
+             if major_words_allocated > 0
+             || Allocation_limit.show_major_words allocation_limit
+             then Some major_words_allocated
+             else None
+           in
+           [%message
+             "allocation exceeded limit"
+               (allocation_limit      : Allocation_limit.t)
+               (minor_words_allocated : int)
+               (major_words_allocated : int sexp_option)]));
     x
   ;;
 
-  (* We disable inlining for [require_no_allocation] so the GC stats and the call to [f]
-     are never rearranged. *)
-  let [@inline never] require_no_allocation ?cr ?hide_positions src f =
-    let minor_words_before = Gc.minor_words () in
-    let major_words_before = Gc.major_words () in
-    (* We wrap [f ()] with [Sys.opaque_identity] to prevent the return value from being
-       optimized away. *)
-    let x = Sys.opaque_identity (f ()) in
-    let minor_words_after = Gc.minor_words () in
-    let major_words_after = Gc.major_words () in
-    require src ?cr ?hide_positions
-      (minor_words_before = minor_words_after
-       && major_words_before = major_words_after)
-      ~if_false_then_print_s:
-        (lazy [%message
-          "allocated"
-            ~minor_words:(minor_words_after - minor_words_before : int)
-            ~major_words:(major_words_after - major_words_before : int)]);
-    x
+  let require_no_allocation ?cr ?hide_positions here f =
+    require_allocation_does_not_exceed ?cr ?hide_positions (Minor_words 0) here f
   ;;
 
   let print_and_check_comparable_sexps

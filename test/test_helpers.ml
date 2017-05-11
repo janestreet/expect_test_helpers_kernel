@@ -174,14 +174,6 @@ let%expect_test "[show_raise] ignores return value" =
     "did not raise" |}];
 ;;
 
-let%expect_test "[show_allocation] shows allocation" =
-  ignore (show_allocation (fun () -> List.map [1; 2; 3] ~f:(fun i -> i + 1)) : int list);
-  [%expect {|
-    (allocated
-      (minor_words 9)
-      (major_words 0)) |}];
-;;
-
 let%expect_test "[require] true prints nothing" =
   require [%here] true;
   [%expect {||}];
@@ -253,9 +245,24 @@ let%expect_test "[require_no_allocation] shows non-zero allocation" =
           : int list);
   [%expect {|
     (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
-    (allocated
-      (minor_words 9)
-      (major_words 0)) |}];
+    ("allocation exceeded limit"
+      (allocation_limit (Minor_words 0))
+      (minor_words_allocated 9)) |}];
+;;
+
+let%expect_test "[require_allocation_does_not_exceed] shows allocation breach" =
+  ignore (require_allocation_does_not_exceed
+            ~cr:Comment
+            ~hide_positions:true
+            (Minor_words 1)
+            [%here]
+            (fun () -> List.map [1; 2; 3] ~f:(fun i -> i + 1))
+          : int list);
+  [%expect {|
+    (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
+    ("allocation exceeded limit"
+      (allocation_limit (Minor_words 1))
+      (minor_words_allocated 9)) |}];
 ;;
 
 let%expect_test "[print_and_check_container_sexps] success" =
