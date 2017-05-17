@@ -234,6 +234,12 @@ let%expect_test "[require_does_raise] success" =
     Boom! |}];
 ;;
 
+let%expect_test "[require_does_raise ~hide_positions:true] success" =
+  require_does_raise [%here] ~hide_positions:true (fun () -> raise_s [%message [%here]]);
+  [%expect {|
+    lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL |}];
+;;
+
 let%expect_test "[require_no_allocation] ignores non-allocating functions" =
   require_no_allocation ~cr:Comment [%here] (fun () -> ());
   [%expect {| |}];

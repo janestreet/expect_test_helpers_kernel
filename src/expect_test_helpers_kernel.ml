@@ -129,7 +129,7 @@ module Make (Print : Print) = struct
 
   let require_does_raise ?cr ?hide_positions ?show_backtrace here f =
     match try_with f ?show_backtrace with
-    | Raised message -> print_s message
+    | Raised message -> print_s ?hide_positions message
     | Did_not_raise  ->
       require ?cr ?hide_positions here false
         ~if_false_then_print_s:(lazy [%message "did not raise"])
