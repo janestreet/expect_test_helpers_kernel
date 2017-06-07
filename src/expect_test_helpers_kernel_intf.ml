@@ -45,6 +45,10 @@ end
 
 module type S = sig
 
+  module Allocation_limit : module type of struct include Allocation_limit end
+
+  module CR : module type of struct include CR end
+
   (** [hide_positions_in_string] does line-based regexp matching to replace line numbers
       and column numbers that appear in source-code positions with constant text [LINE]
       and [COL].  This can be useful in making displayed test output less fragile. *)
@@ -243,10 +247,6 @@ module type Expect_test_helpers_kernel = sig
   module type S = S
 
   include S
-
-  module Allocation_limit : module type of struct include Allocation_limit end
-
-  module CR : module type of struct include CR end
 
   (** We export [Expect_test_config] to override [Expect_test_config.run f] so that, if [f
       ()] raises, [run] prints the exception rather than raising.  Printing works better

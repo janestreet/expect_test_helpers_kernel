@@ -6,49 +6,49 @@ include (Expect_test_helpers_kernel_intf
                Expect_test_helpers_kernel_intf.Allocation_limit
              with module CR := Expect_test_helpers_kernel_intf.CR))
 
-module Allocation_limit = struct
-  include Expect_test_helpers_kernel_intf.Allocation_limit
-
-  let is_ok t ~major_words_allocated ~minor_words_allocated =
-    match t with
-    | Major_words n -> major_words_allocated <= n
-    | Minor_words n -> major_words_allocated = 0 && minor_words_allocated <= n
-  ;;
-
-  let show_major_words = function
-    | Major_words _ -> true
-    | Minor_words _ -> false
-  ;;
-end
-
-module CR = struct
-  include Expect_test_helpers_kernel_intf.CR
-
-  let message t here =
-    let cr cr =
-      String.concat
-        [ "(* ";cr;" require-failed: "
-        ; here |> Source_code_position.to_string
-        ; ".\n"
-        ; "   Do not 'X' this CR; instead make the required property true,\n"
-        ; "   which will make the CR disappear.  For more information, see\n"
-        ; "   [Expect_test_helpers.Helpers.require]. *)" ]
-    in
-    match t with
-    | CR         -> cr "CR"
-    | CR_soon    -> cr "CR-soon"
-    | CR_someday -> cr "CR-someday"
-    | Comment ->
-      String.concat
-        [ "(* require-failed: "
-        ; here |> Source_code_position.to_string
-        ; ". *)" ]
-  ;;
-end
-
 module Make (Print : Print) = struct
 
   open Print
+
+  module Allocation_limit = struct
+    include Expect_test_helpers_kernel_intf.Allocation_limit
+
+    let is_ok t ~major_words_allocated ~minor_words_allocated =
+      match t with
+      | Major_words n -> major_words_allocated <= n
+      | Minor_words n -> major_words_allocated = 0 && minor_words_allocated <= n
+    ;;
+
+    let show_major_words = function
+      | Major_words _ -> true
+      | Minor_words _ -> false
+    ;;
+  end
+
+  module CR = struct
+    include Expect_test_helpers_kernel_intf.CR
+
+    let message t here =
+      let cr cr =
+        String.concat
+          [ "(* ";cr;" require-failed: "
+          ; here |> Source_code_position.to_string
+          ; ".\n"
+          ; "   Do not 'X' this CR; instead make the required property true,\n"
+          ; "   which will make the CR disappear.  For more information, see\n"
+          ; "   [Expect_test_helpers.Helpers.require]. *)" ]
+      in
+      match t with
+      | CR         -> cr "CR"
+      | CR_soon    -> cr "CR-soon"
+      | CR_someday -> cr "CR-someday"
+      | Comment ->
+        String.concat
+          [ "(* require-failed: "
+          ; here |> Source_code_position.to_string
+          ; ". *)" ]
+    ;;
+  end
 
   let hide_positions_in_string =
     let module Re = Re_pcre in
@@ -77,7 +77,7 @@ module Make (Print : Print) = struct
   ;;
 
   let sexp_to_string ?hide_positions sexp =
-    let string = Sexp_pretty.Pretty_print.sexp_to_string sexp in
+    let string = Sexp_pretty.sexp_to_string sexp in
     maybe_hide_positions_in_string ?hide_positions string
   ;;
 
