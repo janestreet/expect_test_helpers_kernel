@@ -179,6 +179,13 @@ let%expect_test "[require] true prints nothing" =
   [%expect {||}];
 ;;
 
+let%expect_test "[cr]" =
+  print_cr [%here] [%message "some message"] ~cr:Comment ~hide_positions:true;
+  [%expect {|
+    (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
+    "some message" |}];
+;;
+
 let%expect_test "[require] false respects [~cr] and [~hide_positions]" =
   require [%here] false ~cr:Comment ~hide_positions:true
     ~if_false_then_print_s:(lazy [%message [%here]]);

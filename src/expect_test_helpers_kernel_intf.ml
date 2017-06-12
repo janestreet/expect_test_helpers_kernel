@@ -134,6 +134,15 @@ module type S = sig
     -> bool
     -> unit
 
+  (** [print_cr here message] is [require here false ~if_false_then_print_s:(lazy
+      message)]. *)
+  val print_cr
+    :  ?cr             : CR.t (** default is [CR]    *)
+    -> ?hide_positions : bool (** default is [false] *)
+    -> Source_code_position.t
+    -> Sexp.t
+    -> unit
+
   (** [show_raise] calls [f ()] and prints the exception that it raises, or, if it doesn't
       raise, prints [did not raise].  [show_raise] ignores the result of [f] so that one
       doesn't have to put an [ignore] inside the body of an [f] that is expected to raise.

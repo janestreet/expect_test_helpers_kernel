@@ -95,6 +95,10 @@ module Make (Print : Print) = struct
        | Some sexp -> print_s ?hide_positions (force sexp)));
   ;;
 
+  let print_cr ?cr ?hide_positions here message =
+    require ?cr ?hide_positions here false ~if_false_then_print_s:(lazy message)
+  ;;
+
   type try_with_result =
     | Did_not_raise
     | Raised of Sexp.t
@@ -123,16 +127,13 @@ module Make (Print : Print) = struct
   let require_does_not_raise ?cr ?hide_positions ?show_backtrace here f =
     match try_with f ?show_backtrace ~raise_message:"unexpectedly raised" with
     | Did_not_raise -> ()
-    | Raised message ->
-      require ?cr ?hide_positions here false ~if_false_then_print_s:(lazy message)
+    | Raised message -> print_cr ?cr ?hide_positions here message
   ;;
 
   let require_does_raise ?cr ?hide_positions ?show_backtrace here f =
     match try_with f ?show_backtrace with
     | Raised message -> print_s ?hide_positions message
-    | Did_not_raise  ->
-      require ?cr ?hide_positions here false
-        ~if_false_then_print_s:(lazy [%message "did not raise"])
+    | Did_not_raise  -> print_cr ?cr ?hide_positions here [%message "did not raise"]
 
   let bigstring_for_print_bin_ios = ref (Bigstring.create 1024)
 
