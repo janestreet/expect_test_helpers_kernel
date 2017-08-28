@@ -48,6 +48,11 @@ module Make (Print : Print) = struct
           ; here |> Source_code_position.to_string
           ; ". *)" ]
     ;;
+
+    let hide_unstable_output = function
+      | CR                             -> false
+      | CR_soon | CR_someday | Comment -> true
+    ;;
   end
 
   let hide_positions_in_string =
@@ -85,14 +90,43 @@ module Make (Print : Print) = struct
     print_string (sexp_to_string ?hide_positions sexp);
   ;;
 
-  let require ?(cr = CR.CR) ?hide_positions ?if_false_then_print_s here bool =
+  let require
+        ?(cr             = CR.CR)
+        ?(hide_positions = CR.hide_unstable_output cr)
+        ?if_false_then_print_s
+        here
+        bool
+    =
     if not bool
     then (
       print_endline (CR.message cr here
-                     |> maybe_hide_positions_in_string ?hide_positions);
+                     |> maybe_hide_positions_in_string ~hide_positions);
       (match if_false_then_print_s with
        | None -> ()
-       | Some sexp -> print_s ?hide_positions (force sexp)));
+       | Some sexp -> print_s ~hide_positions (force sexp)));
+  ;;
+
+  let require_equal (type a)
+        ?cr
+        ?hide_positions
+        ?(message = "values are not equal")
+        here
+        (module M : With_equal with type t = a)
+        x y =
+    require ?cr ?hide_positions here (M.equal x y)
+      ~if_false_then_print_s:(lazy [%message message ~_:(x : M.t) ~_:(y : M.t)])
+  ;;
+
+  let require_compare_equal (type a)
+        ?cr ?hide_positions ?message here
+        (module M : With_compare with type t = a)
+        x y =
+    require_equal ?cr ?hide_positions ?message here
+      (module struct
+        include M
+        let equal = [%compare.equal: t]
+      end)
+      x y
   ;;
 
   let print_cr ?cr ?hide_positions here message =
@@ -117,11 +151,12 @@ module Make (Print : Print) = struct
           then None
           else Some (Backtrace.Exn.most_recent ())
         in
-        Raised [%message
-          ""
-            ~_:(raise_message : string sexp_option)
-            ~_:(exn : exn)
-            (backtrace : Backtrace.t sexp_option)])
+        Ref.set_temporarily Backtrace.elide (not show_backtrace) ~f:(fun () ->
+          Raised [%message
+            ""
+              ~_:(raise_message : string sexp_option)
+              ~_:(exn : exn)
+              (backtrace : Backtrace.t sexp_option)]))
   ;;
 
   let require_does_not_raise ?cr ?hide_positions ?show_backtrace here f =
@@ -288,7 +323,7 @@ module Make (Print : Print) = struct
   (* We disable inlining for [require_allocation_does_not_exceed] so the GC stats and the
      call to [f] are never rearranged. *)
   let [@inline never] require_allocation_does_not_exceed
-        ?cr
+        ?(cr = CR.CR)
         ?hide_positions
         allocation_limit
         here
@@ -302,21 +337,23 @@ module Make (Print : Print) = struct
     let major_words_after = Gc.major_words () in
     let major_words_allocated = major_words_after - major_words_before in
     let minor_words_allocated = minor_words_after - minor_words_before in
-    require here ?cr ?hide_positions
+    require here ~cr ?hide_positions
       (Allocation_limit.is_ok allocation_limit
          ~major_words_allocated ~minor_words_allocated)
       ~if_false_then_print_s:
         (lazy (
-           let major_words_allocated =
-             if major_words_allocated > 0
-             || Allocation_limit.show_major_words allocation_limit
-             then Some major_words_allocated
-             else None
+           let minor_words_allocated, major_words_allocated =
+             if CR.hide_unstable_output cr
+             then None, None
+             else if major_words_allocated > 0
+                  || Allocation_limit.show_major_words allocation_limit
+             then Some minor_words_allocated, Some major_words_allocated
+             else Some minor_words_allocated, None
            in
            [%message
              "allocation exceeded limit"
                (allocation_limit      : Allocation_limit.t)
-               (minor_words_allocated : int)
+               (minor_words_allocated : int sexp_option)
                (major_words_allocated : int sexp_option)]));
     x
   ;;
@@ -414,9 +451,12 @@ module Expect_test_config = struct
     try
       f ();
     with exn ->
-      print_s [%message
-        "\
-A top-level expression in [let%expect] raised -- consider using [show_raise]"
-          ~_:(exn : Exn.Never_elide_backtrace.t)]
+      let backtrace = Backtrace.Exn.most_recent () in
+      Ref.set_temporarily Backtrace.elide false ~f:(fun () ->
+        print_s [%message
+          "\
+  A top-level expression in [let%expect] raised -- consider using [show_raise]"
+            ~_:(exn : Exn.t)
+            (backtrace : Backtrace.t)])
   ;;
 end

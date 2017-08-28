@@ -37,7 +37,7 @@ let%expect_test "[print_and_check_stable_type] with broken round-trip" =
         let of_binable = of_serializeable
       end)
   end in
-  print_and_check_stable_type [%here] ~cr:Comment ~hide_positions:true (module Broken)
+  print_and_check_stable_type [%here] ~cr:Comment (module Broken)
     [ 42; 23 ];
   [%expect {|
     (bin_shape_digest d9a8da25d5656b016fb4dbdc2e4197fb)
@@ -58,7 +58,7 @@ let%expect_test "[print_and_check_stable_type] with broken round-trip" =
 ;;
 
 let%expect_test "[print_and_check_stable_type] with exceeded max-length" =
-  print_and_check_stable_type [%here] ~cr:Comment ~hide_positions:true (module Int)
+  print_and_check_stable_type [%here] ~cr:Comment (module Int)
     [ 0; Int.max_value_30_bits ]
     ~max_binable_length:1;
   [%expect {|
@@ -80,7 +80,7 @@ let%expect_test "[print_and_check_stable_type] with conversion that raises" =
     type t = int [@@deriving sexp, bin_io]
     let compare x y = raise_s [%message "compare" (x : int) (y : int)]
   end in
-  print_and_check_stable_type [%here] ~cr:Comment ~hide_positions:true (module Broken)
+  print_and_check_stable_type [%here] ~cr:Comment (module Broken)
     [ 1; 2; 3 ];
   [%expect {|
     (bin_shape_digest 698cfa4093fe5e51523842d37b92aeac)
@@ -109,7 +109,7 @@ let%expect_test "[print_bin_ios]" =
 ;;
 
 let%expect_test "[print_bin_ios_with_max]" =
-  print_bin_ios_with_max [%here] ~cr:Comment ~hide_positions:true
+  print_bin_ios_with_max [%here] ~cr:Comment
     (module struct
       include Int
       let max_binable_length = 1
@@ -180,14 +180,14 @@ let%expect_test "[require] true prints nothing" =
 ;;
 
 let%expect_test "[cr]" =
-  print_cr [%here] [%message "some message"] ~cr:Comment ~hide_positions:true;
+  print_cr [%here] [%message "some message"] ~cr:Comment;
   [%expect {|
     (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
     "some message" |}];
 ;;
 
-let%expect_test "[require] false respects [~cr] and [~hide_positions]" =
-  require [%here] false ~cr:Comment ~hide_positions:true
+let%expect_test "[require] false respects [~cr] and default [~hide_positions]" =
+  require [%here] false ~cr:Comment
     ~if_false_then_print_s:(lazy [%message [%here]]);
   [%expect {|
     (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
@@ -195,10 +195,50 @@ let%expect_test "[require] false respects [~cr] and [~hide_positions]" =
 ;;
 
 let%expect_test "[require false] on non-comment [~cr] values includes instructions" =
-  require [%here] false ~cr:CR_someday ~hide_positions:true
+  require [%here] false ~cr:CR_someday
     ~if_false_then_print_s:(lazy [%message [%here]]);
   [%expect {|
     lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL |}];
+;;
+
+let%expect_test "[require_equal] success" =
+  require_equal [%here] (module Int) ~cr:Comment 1 1;
+  [%expect {||}];
+;;
+
+let%expect_test "[require_equal] failure" =
+  require_equal [%here] (module Int) ~cr:Comment 1 2;
+  [%expect {|
+    (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
+    ("values are not equal" 1 2) |}];
+;;
+
+let%expect_test "[require_equal] failure with [~message]" =
+  require_equal [%here] (module Int) ~cr:Comment 1 2
+    ~message:"The sky is falling!";
+  [%expect {|
+    (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
+    ("The sky is falling!" 1 2) |}];
+;;
+
+let%expect_test "[require_compare_equal] success" =
+  require_compare_equal [%here] (module Int) ~cr:Comment 1 1;
+  [%expect {||}];
+;;
+
+let%expect_test "[require_compare_equal] failure" =
+  require_compare_equal [%here] (module Int) ~cr:Comment 1 2;
+  [%expect {|
+    (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
+    ("values are not equal" 1 2) |}];
+;;
+
+let%expect_test "[require_compare_equal] failure with [~message]" =
+  require_compare_equal [%here] (module Int) ~cr:Comment 1 2
+    ~message:"The sky is falling!";
+  [%expect {|
+    (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
+    ("The sky is falling!" 1 2) |}];
 ;;
 
 let%expect_test "[require_does_not_raise], no exception" =
@@ -207,7 +247,7 @@ let%expect_test "[require_does_not_raise], no exception" =
 ;;
 
 let%expect_test "[require_does_not_raise], raises hiding positions" =
-  require_does_not_raise [%here] ~cr:Comment ~hide_positions:true (fun () ->
+  require_does_not_raise [%here] ~cr:Comment (fun () ->
     raise_s [%message [%here]]);
   [%expect {|
     (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
@@ -221,7 +261,7 @@ let%expect_test "[require_does_not_raise] with a deep stack" =
     then failwith "raising"
     else 1 + loop (n - 1)
   in
-  require_does_not_raise [%here] ~cr:Comment ~hide_positions:true (fun () ->
+  require_does_not_raise [%here] ~cr:Comment (fun () ->
     ignore (loop 13 : int));
   [%expect {|
     (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
@@ -229,7 +269,7 @@ let%expect_test "[require_does_not_raise] with a deep stack" =
 ;;
 
 let%expect_test "[require_does_raise] failure" =
-  require_does_raise [%here] ~cr:Comment ~hide_positions:true (fun () -> ());
+  require_does_raise [%here] ~cr:Comment (fun () -> ());
   [%expect {|
     (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
     "did not raise" |}];
@@ -252,30 +292,25 @@ let%expect_test "[require_no_allocation] ignores non-allocating functions" =
   [%expect {| |}];
 ;;
 
-let%expect_test "[require_no_allocation] shows non-zero allocation" =
-  ignore (require_no_allocation ~hide_positions:true ~cr:Comment [%here]
+let%expect_test "[require_no_allocation] shows breach and expected, but does not show allocation" =
+  ignore (require_no_allocation ~cr:Comment [%here]
             (fun () -> List.map [1; 2; 3] ~f:(fun i -> i + 1))
           : int list);
   [%expect {|
     (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
-    ("allocation exceeded limit"
-      (allocation_limit (Minor_words 0))
-      (minor_words_allocated 9)) |}];
+    ("allocation exceeded limit" (allocation_limit (Minor_words 0))) |}];
 ;;
 
-let%expect_test "[require_allocation_does_not_exceed] shows allocation breach" =
+let%expect_test "[require_allocation_does_not_exceed] shows breach but not allocation" =
   ignore (require_allocation_does_not_exceed
             ~cr:Comment
-            ~hide_positions:true
             (Minor_words 1)
             [%here]
             (fun () -> List.map [1; 2; 3] ~f:(fun i -> i + 1))
           : int list);
   [%expect {|
     (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
-    ("allocation exceeded limit"
-      (allocation_limit (Minor_words 1))
-      (minor_words_allocated 9)) |}];
+    ("allocation exceeded limit" (allocation_limit (Minor_words 1))) |}];
 ;;
 
 let%expect_test "[print_and_check_container_sexps] success" =
@@ -294,7 +329,7 @@ let%expect_test "[print_and_check_container_sexps] success" =
 ;;
 
 let%expect_test "[print_and_check_container_sexps] failure" =
-  print_and_check_container_sexps ~cr:Comment ~hide_positions:true [%here]
+  print_and_check_container_sexps ~cr:Comment [%here]
     (module struct
       include Int
       let sexp_of_t = Int.Hex.sexp_of_t

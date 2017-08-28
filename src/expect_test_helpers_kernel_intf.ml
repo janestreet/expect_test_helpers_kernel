@@ -43,11 +43,27 @@ module type With_hashable = sig
   include Hashable with type t := t
 end
 
+module type With_compare = sig
+  type t [@@deriving compare, sexp_of]
+end
+
+module type With_equal = sig
+  type t [@@deriving sexp_of]
+  include Equal.S with type t := t
+end
+
 module type S = sig
 
   module Allocation_limit : module type of struct include Allocation_limit end
 
-  module CR : module type of struct include CR end
+  module CR : sig
+    include module type of struct include CR end
+
+    (** [hide_unstable_output t] returns [false] if [t = CR] and [true] otherwise.  Useful
+        to provide a default for arguments such as [?hide_positions] in functions that
+        also have a [?cr] argument. *)
+    val hide_unstable_output : t -> bool
+  end
 
   (** [hide_positions_in_string] does line-based regexp matching to replace line numbers
       and column numbers that appear in source-code positions with constant text [LINE]
@@ -74,8 +90,8 @@ module type S = sig
       serializations that fail to round-trip, and for any bin-io serializations that
       exceed [max_binable_length]. *)
   val print_and_check_stable_type
-    :  ?cr                 : CR.t (** default is [CR]            *)
-    -> ?hide_positions     : bool (** default is [false]         *)
+    :  ?cr                 : CR.t (** default is [CR] *)
+    -> ?hide_positions     : bool (** default is [false] when [cr=CR], [true] otherwise *)
     -> ?max_binable_length : int  (** default is [Int.max_value] *)
     -> Source_code_position.t
     -> (module Stable_without_comparator with type t = 'a)
@@ -85,8 +101,8 @@ module type S = sig
   (** [print_and_check_stable_int63able_type] works like [print_and_check_stable_type],
       and includes [Int63.t] serializations. *)
   val print_and_check_stable_int63able_type
-    :  ?cr                 : CR.t (** default is [CR]            *)
-    -> ?hide_positions     : bool (** default is [false]         *)
+    :  ?cr                 : CR.t (** default is [CR] *)
+    -> ?hide_positions     : bool (** default is [false] when [cr=CR], [true] otherwise *)
     -> ?max_binable_length : int  (** default is [Int.max_value] *)
     -> Source_code_position.t
     -> (module Stable_int63able with type t = 'a)
@@ -106,8 +122,8 @@ module type S = sig
       [max_binable_length].  This is useful for ensuring that serializations fit in some
       required size, e.g. an ethernet MTU. *)
   val print_bin_ios_with_max
-    :  ?cr             : CR.t (** default is [CR]   *)
-    -> ?hide_positions : bool (** default is [false] *)
+    :  ?cr             : CR.t (** default is [CR] *)
+    -> ?hide_positions : bool (** default is [false] when [cr=CR], [true] otherwise *)
     -> Source_code_position.t
     -> (module Print_bin_ios_with_max_arg with type t = 'a)
     -> 'a list
@@ -127,18 +143,43 @@ module type S = sig
       too voluminous.  [if_false_then_print_s] is lazy to avoid construction of the sexp
       except when needed. *)
   val require
-    :  ?cr             : CR.t (** default is [CR]    *)
-    -> ?hide_positions : bool (** default is [false] *)
+    :  ?cr             : CR.t (** default is [CR] *)
+    -> ?hide_positions : bool (** default is [false] when [cr=CR], [true] otherwise *)
     -> ?if_false_then_print_s : Sexp.t Lazy.t
     -> Source_code_position.t
     -> bool
     -> unit
 
+  (** [require_equal] compares its two arguments using the equality predicate of the
+      provided module. If the comparison fails, prints a message that renders the
+      arguments as sexps. *)
+  val require_equal
+    :  ?cr             : CR.t (** default is [CR]    *)
+    -> ?hide_positions : bool (** default is [false] when [cr=CR], [true] otherwise *)
+    -> ?message        : string
+    -> Source_code_position.t
+    -> (module With_equal with type t = 'a)
+    -> 'a
+    -> 'a
+    -> unit
+
+  (** Like [require_equal], but derives an equality predicate from a comparison
+      function. *)
+  val require_compare_equal
+    :  ?cr             : CR.t (** default is [CR]    *)
+    -> ?hide_positions : bool (** default is [false] when [cr=CR], [true] otherwise *)
+    -> ?message        : string
+    -> Source_code_position.t
+    -> (module With_compare with type t = 'a)
+    -> 'a
+    -> 'a
+    -> unit
+
   (** [print_cr here message] is [require here false ~if_false_then_print_s:(lazy
       message)]. *)
   val print_cr
-    :  ?cr             : CR.t (** default is [CR]    *)
-    -> ?hide_positions : bool (** default is [false] *)
+    :  ?cr             : CR.t (** default is [CR] *)
+    -> ?hide_positions : bool (** default is [false] when [cr=CR], [true] otherwise *)
     -> Source_code_position.t
     -> Sexp.t
     -> unit
@@ -162,8 +203,8 @@ module type S = sig
       mistakes like incomplete partial application that silently would not raise, but for
       the wrong reason. *)
   val require_does_not_raise
-    :  ?cr             : CR.t (** default is [CR]    *)
-    -> ?hide_positions : bool (** default is [false] *)
+    :  ?cr             : CR.t (** default is [CR] *)
+    -> ?hide_positions : bool (** default is [false] when [cr=CR], [true] otherwise *)
     -> ?show_backtrace : bool (** default is [false] *)
     -> Source_code_position.t
     -> (unit -> unit)
@@ -172,8 +213,8 @@ module type S = sig
   (** [require_does_raise] is like [show_raise], but additionally prints a CR if the
       function does not raise. *)
   val require_does_raise
-    :  ?cr             : CR.t (** default is [CR]    *)
-    -> ?hide_positions : bool (** default is [false] *)
+    :  ?cr             : CR.t (** default is [CR] *)
+    -> ?hide_positions : bool (** default is [false] when [cr=CR], [true] otherwise *)
     -> ?show_backtrace : bool (** default is [false] *)
     -> Source_code_position.t
     -> (unit -> _)
@@ -202,8 +243,8 @@ module type S = sig
       intended to be measured.  With the former idiom, the compiler cannot do such
       optimization and must compute the result of [f ()]. *)
   val require_allocation_does_not_exceed
-    :  ?cr             : CR.t  (** default is [CR]    *)
-    -> ?hide_positions : bool  (** default is [false] *)
+    :  ?cr             : CR.t (** default is [CR] *)
+    -> ?hide_positions : bool (** default is [false] when [cr=CR], [true] otherwise *)
     -> Allocation_limit.t
     -> Source_code_position.t
     -> (unit -> 'a)
@@ -212,8 +253,8 @@ module type S = sig
   (** [require_no_allocation here f] is equivalent to [require_allocation_does_not_exceed
       (Minor_words 0) here f]. *)
   val require_no_allocation
-    :  ?cr             : CR.t  (** default is [CR]    *)
-    -> ?hide_positions : bool  (** default is [false] *)
+    :  ?cr             : CR.t (** default is [CR] *)
+    -> ?hide_positions : bool (** default is [false] when [cr=CR], [true] otherwise *)
     -> Source_code_position.t
     -> (unit -> 'a)
     -> 'a
@@ -224,8 +265,8 @@ module type S = sig
       prints a CR if the sexp does not correspond to an association list keyed on
       elements. *)
   val print_and_check_container_sexps
-    :  ?cr             : CR.t (** default is [CR]    *)
-    -> ?hide_positions : bool (** default is [false] *)
+    :  ?cr             : CR.t (** default is [CR] *)
+    -> ?hide_positions : bool (** default is [false] when [cr=CR], [true] otherwise *)
     -> Source_code_position.t
     -> (module With_containers with type t = 'a)
     -> 'a list
@@ -234,8 +275,8 @@ module type S = sig
   (** [print_and_check_comparable_sexps] is like [print_and_check_container_sexps] for
       maps and sets only. *)
   val print_and_check_comparable_sexps
-    :  ?cr             : CR.t (** default is [CR]    *)
-    -> ?hide_positions : bool (** default is [false] *)
+    :  ?cr             : CR.t (** default is [CR] *)
+    -> ?hide_positions : bool (** default is [false] when [cr=CR], [true] otherwise *)
     -> Source_code_position.t
     -> (module With_comparable with type t = 'a)
     -> 'a list
@@ -244,8 +285,8 @@ module type S = sig
   (** [print_and_check_hashable_sexps] is like [print_and_check_container_sexps] for hash
       tables and hash sets only. *)
   val print_and_check_hashable_sexps
-    :  ?cr             : CR.t (** default is [CR]    *)
-    -> ?hide_positions : bool (** default is [false] *)
+    :  ?cr             : CR.t (** default is [CR] *)
+    -> ?hide_positions : bool (** default is [false] when [cr=CR], [true] otherwise *)
     -> Source_code_position.t
     -> (module With_hashable with type t = 'a)
     -> 'a list
