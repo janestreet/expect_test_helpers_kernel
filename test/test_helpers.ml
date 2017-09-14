@@ -145,6 +145,18 @@ let%expect_test "[print_s ~hide_positions:true]" =
        lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL) |}];
 ;;
 
+let%expect_test "[print_s] bug, apparently" =
+  "(\"sets are not equal\"(first (1 2))(second (2))(\"in first but not in second\"(1)))"
+  |> Sexp.of_string
+  |> print_s;
+  [%expect {|
+    ("sets are not equal"
+      (first (1 2))
+      (second                     (2))
+      ("in first but not in second"(
+      1))) |}];
+;;
+
 let%expect_test "[show_raise], no exception" =
   show_raise ~hide_positions:true (fun () -> ());
   [%expect {|
@@ -239,6 +251,60 @@ let%expect_test "[require_compare_equal] failure with [~message]" =
   [%expect {|
     (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
     ("The sky is falling!" 1 2) |}];
+;;
+
+let%expect_test "[require_sets_are_equal] success" =
+  require_sets_are_equal [%here] (module Int.Set) Int.Set.empty Int.Set.empty;
+  [%expect {| |}];
+  require_sets_are_equal [%here] (module Int.Set)
+    (Int.Set.of_list [ 1; 2; 3 ])
+    (Int.Set.of_list [ 3; 2; 1 ]);
+  [%expect {| |}];
+;;
+
+let%expect_test "[require_sets_are_equal] failure" =
+  require_sets_are_equal [%here] (module Int.Set)
+    ~cr:Comment
+    (Int.Set.of_list [ 1; 2 ])
+    (Int.Set.of_list [ 2; 3 ]);
+  [%expect {|
+    (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
+    ("sets are not equal"
+      ("in first but not in second" (1))
+      ("in second but not in first" (3))) |}];
+;;
+
+let%expect_test "[require_sets_are_equal] failure with extras only in first" =
+  require_sets_are_equal [%here] (module Int.Set)
+    ~cr:Comment
+    (Int.Set.of_list [ 1; 2 ])
+    (Int.Set.of_list [ 2 ]);
+  [%expect {|
+    (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
+    ("sets are not equal" ("in first but not in second" (1))) |}];
+;;
+
+let%expect_test "[require_sets_are_equal] failure with extras only in second" =
+  require_sets_are_equal [%here] (module Int.Set)
+    ~cr:Comment
+    (Int.Set.of_list [ 2 ])
+    (Int.Set.of_list [ 2; 3 ]);
+  [%expect {|
+    (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
+    ("sets are not equal" ("in second but not in first" (3))) |}];
+;;
+
+let%expect_test "[require_sets_are_equal] failure with names" =
+  require_sets_are_equal [%here] (module Int.Set)
+    (Int.Set.of_list [ 1; 2 ])
+    (Int.Set.of_list [ 2; 3 ])
+    ~cr:Comment
+    ~names:("expected", "actual");
+  [%expect {|
+    (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
+    ("sets are not equal"
+      ("in expected but not in actual" (1))
+      ("in actual but not in expected" (3))) |}];
 ;;
 
 let%expect_test "[require_does_not_raise], no exception" =

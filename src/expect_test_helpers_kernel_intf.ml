@@ -27,6 +27,14 @@ module type Print_bin_ios_with_max_arg = sig
   val max_binable_length : int
 end
 
+module type Set = sig
+  type t [@@deriving sexp_of]
+
+  val diff     : t -> t -> t
+  val equal    : t -> t -> bool
+  val is_empty : t -> bool
+end
+
 module type With_containers = sig
   type t [@@deriving sexp]
   include Comparable with type t := t
@@ -171,6 +179,18 @@ module type S = sig
     -> ?message        : string
     -> Source_code_position.t
     -> (module With_compare with type t = 'a)
+    -> 'a
+    -> 'a
+    -> unit
+
+  (** Like [require_equal], but when equality fails produces a message including sexps of
+      both [Set.diff first second] and [Set.diff second first] to aid in debugging. *)
+  val require_sets_are_equal
+    :  ?cr             : CR.t    (** default is [CR]    *)
+    -> ?hide_positions : bool    (** default is [false] when [cr=CR], [true] otherwise *)
+    -> ?names          : string * string  (** default is ["first", "second"] *)
+    -> Source_code_position.t
+    -> (module Set with type t = 'a)
     -> 'a
     -> 'a
     -> unit

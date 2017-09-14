@@ -129,6 +129,32 @@ module Make (Print : Print) = struct
       x y
   ;;
 
+  let require_sets_are_equal (type a)
+        ?cr
+        ?hide_positions
+        ?(names = ("first", "second"))
+        here
+        (module M : Set with type t = a)
+        first
+        second =
+    require ?cr ?hide_positions here (M.equal first second)
+      ~if_false_then_print_s:(lazy (
+        let show_diff
+              (name1, set1)
+              (name2, set2) =
+          let diff = M.diff set1 set2 in
+          if M.is_empty diff
+          then [%message]
+          else [%message (sprintf "in %s but not in %s" name1 name2) ~_:(diff : M.t)]
+        in
+        let first  = (fst names, first)  in
+        let second = (snd names, second) in
+        [%message.omit_nil
+          "sets are not equal"
+            ~_:(show_diff first  second : Sexp.t)
+            ~_:(show_diff second first  : Sexp.t)]))
+  ;;
+
   let print_cr ?cr ?hide_positions here message =
     require ?cr ?hide_positions here false ~if_false_then_print_s:(lazy message)
   ;;
