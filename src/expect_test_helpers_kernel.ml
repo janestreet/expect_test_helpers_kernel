@@ -36,7 +36,7 @@ module Make (Print : Print) = struct
           ; ".\n"
           ; "   Do not 'X' this CR; instead make the required property true,\n"
           ; "   which will make the CR disappear.  For more information, see\n"
-          ; "   [Expect_test_helpers.Helpers.require]. *)" ]
+          ; "   [Expect_test_helpers_kernel.require]. *)" ]
       in
       match t with
       | CR         -> cr "CR"
