@@ -60,7 +60,7 @@ module type With_equal = sig
   include Equal.S with type t := t
 end
 
-module type S = sig
+module type Expect_test_helpers_kernel = sig
 
   module Allocation_limit : module type of struct include Allocation_limit end
 
@@ -311,18 +311,10 @@ module type S = sig
     -> (module With_hashable with type t = 'a)
     -> 'a list
     -> unit
-end
-
-module type Expect_test_helpers_kernel = sig
-  module type S = S
-
-  include S
 
   (** We export [Expect_test_config] to override [Expect_test_config.run f] so that, if [f
       ()] raises, [run] prints the exception rather than raising.  Printing works better
       with the expect-test workflow than an unhandled exception, because there is a
       [.corrected] file that one can accept and inspect. *)
   module Expect_test_config : Expect_test_config.S with type 'a IO.t = 'a
-
-  module Make (Print : Print) : S
 end
