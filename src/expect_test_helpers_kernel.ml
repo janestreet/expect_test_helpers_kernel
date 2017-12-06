@@ -93,20 +93,36 @@ let print_s ?hide_positions sexp =
   print_string (sexp_to_string ?hide_positions sexp);
 ;;
 
-let require
+let on_print_cr = ref print_endline
+
+let print_cr_with_optional_message
       ?(cr             = CR.CR)
       ?(hide_positions = CR.hide_unstable_output cr)
-      ?if_false_then_print_s
       here
-      bool
+      optional_message
   =
-  if not bool
-  then (
-    print_endline (CR.message cr here
-                   |> maybe_hide_positions_in_string ~hide_positions);
-    (match if_false_then_print_s with
-     | None -> ()
-     | Some sexp -> print_s ~hide_positions (force sexp)));
+  let cr =
+    CR.message cr here
+    |> maybe_hide_positions_in_string ~hide_positions
+  in
+  !on_print_cr (
+    match optional_message with
+    | None      -> cr
+    | Some sexp ->
+      String.concat [ cr; "\n"
+                    ; String.rstrip (sexp_to_string ~hide_positions sexp) ]);
+;;
+
+let print_cr ?cr ?hide_positions here message =
+  print_cr_with_optional_message ?cr ?hide_positions here (Some message)
+;;
+
+let require ?cr ?hide_positions ?if_false_then_print_s here bool =
+  match bool with
+  | true  -> ()
+  | false ->
+    print_cr_with_optional_message ?cr ?hide_positions here
+      (Option.map if_false_then_print_s ~f:force)
 ;;
 
 let require_equal (type a)
@@ -156,10 +172,6 @@ let require_sets_are_equal (type a)
         "sets are not equal"
           ~_:(show_diff first  second : Sexp.t)
           ~_:(show_diff second first  : Sexp.t)]))
-;;
-
-let print_cr ?cr ?hide_positions here message =
-  require ?cr ?hide_positions here false ~if_false_then_print_s:(lazy message)
 ;;
 
 type try_with_result =
@@ -459,6 +471,48 @@ let print_and_check_container_sexps (type a) ?cr ?hide_positions here m list =
   let (module M : With_containers with type t = a) = m in
   print_and_check_comparable_sexps ?cr ?hide_positions here (module M) list;
   print_and_check_hashable_sexps   ?cr ?hide_positions here (module M) list;
+;;
+
+let quickcheck
+      here
+      ?cr
+      ?hide_positions
+      ?seed
+      ?sizes
+      ?trials
+      ?attempts
+      ?filter
+      ?shrinker
+      ?shrink_attempts
+      ?examples
+      ~sexp_of
+      ~f
+      gen
+  =
+  match
+    Quickcheck.test_or_error
+      ?seed
+      ?sizes
+      ?trials
+      ?attempts
+      ?filter
+      ?shrinker
+      ?shrink_attempts
+      ?examples
+      ~sexp_of
+      gen
+      ~f:(fun elt ->
+        let cr_count = ref 0 in
+        let original_on_print_cr = !on_print_cr in
+        Ref.set_temporarily on_print_cr
+          (fun string -> incr cr_count; original_on_print_cr string)
+          ~f:(fun () -> f elt);
+        if !cr_count > 0
+        then Or_error.errorf "printed %d CRs for Quickcheck-generated input" !cr_count
+        else Ok ())
+  with
+  | Ok ()       -> ()
+  | Error error -> print_cr here ?cr ?hide_positions [%sexp (error : Error.t)]
 ;;
 
 module Expect_test_config = struct

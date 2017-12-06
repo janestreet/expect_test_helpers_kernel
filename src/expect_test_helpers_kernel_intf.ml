@@ -137,19 +137,27 @@ module type Expect_test_helpers_kernel = sig
     -> 'a list
     -> unit
 
-  (** [require here bool] is a no-op if [bool = true], but if not, prints a [CR
-      require-failed:], which will appear in the expect-test output.  The CR will appear
-      in the feature owner's [fe todo], thus preventing release of the feature.  [require]
-      is an expect-test-friendly version of [assert].  It works with the normal
-      expect-test workflow because it does not raise, and it prevents mistakenly releasing
-      features that violate a required property.  There is no need to 'X' a [CR
-      require-failed]; simply fix the property tested by the [require] and re-run the test
-      to restore the empty output.
+  (** [print_cr here message] prints a [CR require-failed], which will appear in
+      expect-test output. The CR will appear in the feature owner's [fe todo], thus
+      preventing release of the feature. [print_cr] is an expect-test-friendly version of
+      [assert false]. It works with the normal expect-test workflow because it does not
+      raise, and it prevents mistakenly releasing features that violate a required
+      property. There is no need to 'X' a [CR require-failed]; simply fix the property
+      that triggered the [print_cr] and re-run the test to restore the empty output. *)
+  val print_cr
+    :  ?cr             : CR.t (** default is [CR] *)
+    -> ?hide_positions : bool (** default is [false] when [cr=CR], [true] otherwise *)
+    -> Source_code_position.t
+    -> Sexp.t
+    -> unit
 
-      [require] prints [if_false_then_print_s] only if [bool = false].  It is useful for
-      including information that may help debug the problem, but that would otherwise be
-      too voluminous.  [if_false_then_print_s] is lazy to avoid construction of the sexp
-      except when needed. *)
+  (** [require here bool] is a no-op if [bool = true], but if not, prints a [CR
+      require-failed] similarly to [print_cr], with a message determined by the
+      [if_false_then_print_s] argument, if any.
+
+      [if_false_then_print_s] is useful for including information that may help debug the
+      problem, but that would otherwise be too voluminous.  [if_false_then_print_s] is
+      lazy to avoid construction of the sexp except when needed. *)
   val require
     :  ?cr             : CR.t (** default is [CR] *)
     -> ?hide_positions : bool (** default is [false] when [cr=CR], [true] otherwise *)
@@ -193,15 +201,6 @@ module type Expect_test_helpers_kernel = sig
     -> (module Set with type t = 'a)
     -> 'a
     -> 'a
-    -> unit
-
-  (** [print_cr here message] is [require here false ~if_false_then_print_s:(lazy
-      message)]. *)
-  val print_cr
-    :  ?cr             : CR.t (** default is [CR] *)
-    -> ?hide_positions : bool (** default is [false] when [cr=CR], [true] otherwise *)
-    -> Source_code_position.t
-    -> Sexp.t
     -> unit
 
   (** [show_raise] calls [f ()] and prints the exception that it raises, or, if it doesn't
@@ -311,6 +310,32 @@ module type Expect_test_helpers_kernel = sig
     -> (module With_hashable with type t = 'a)
     -> 'a list
     -> unit
+
+  (** [quickcheck] is similar to [Quickcheck.test].  It stops after the first iteration
+      that prints a CR, as detected by [on_print_cr]. *)
+  val quickcheck
+    :  Source_code_position.t
+    -> ?cr              : CR.t (** default is [CR] *)
+    -> ?hide_positions  : bool (** default is [false] when [cr=CR], [true] otherwise *)
+    -> ?seed            : Quickcheck.seed
+    -> ?sizes           : int Sequence.t
+    -> ?trials          : int
+    -> ?attempts        : int
+    -> ?filter          : ('a -> bool)
+    -> ?shrinker        : 'a Quickcheck.Shrinker.t
+    -> ?shrink_attempts : Quickcheck.shrink_attempts
+    -> ?examples        : 'a list
+    -> sexp_of          : ('a -> Sexp.t)
+    -> f                : ('a -> unit)
+    -> 'a Quickcheck.Generator.t
+    -> unit
+
+  (** [on_print_cr] determines the behavior of all functions above that print CRs, such as
+      [print_cr] and [require].  The rendered string form of the CR is passed to
+      [!on_print_cr].  The default value is [print_endline]; this can be overridden to
+      replace or extend the default behavior.  For example, some testing harnesses may
+      choose to abort a series of tests after the first CR is printed. *)
+  val on_print_cr : (string -> unit) ref
 
   (** We export [Expect_test_config] to override [Expect_test_config.run f] so that, if [f
       ()] raises, [run] prints the exception rather than raising.  Printing works better

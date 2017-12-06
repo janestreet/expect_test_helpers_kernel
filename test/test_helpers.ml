@@ -441,3 +441,161 @@ let%expect_test "[print_and_check_container_sexps] failure" =
        (0xa  1)
        (0x64 2)))) |}];
 ;;
+
+let%expect_test "[on_print_cr]" =
+  let cr = CR.Comment in
+  let hide_positions = true in
+  let run () =
+    print_cr [%here] ~cr ~hide_positions [%message "unconditional message"];
+    require [%here] ~cr ~hide_positions false
+      ~if_false_then_print_s:(lazy [%message "conditional message"]);
+    require [%here] ~cr ~hide_positions true
+      ~if_false_then_print_s:(lazy [%message "elided message"]);
+  in
+  let default = !on_print_cr in
+  run ();
+  [%expect {|
+    (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
+    "unconditional message"
+    (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
+    "conditional message" |}];
+  on_print_cr := ignore;
+  run ();
+  [%expect {||}];
+  on_print_cr := (fun string -> print_endline (String.uppercase string));
+  run ();
+  [%expect {|
+    (* REQUIRE-FAILED: LIB/EXPECT_TEST_HELPERS_KERNEL/TEST/TEST_HELPERS.ML:LINE:COL. *)
+    "UNCONDITIONAL MESSAGE"
+    (* REQUIRE-FAILED: LIB/EXPECT_TEST_HELPERS_KERNEL/TEST/TEST_HELPERS.ML:LINE:COL. *)
+    "CONDITIONAL MESSAGE" |}];
+  on_print_cr := default;
+  run ();
+  [%expect {|
+    (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
+    "unconditional message"
+    (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
+    "conditional message" |}];
+;;
+
+let%expect_test "[quickcheck] success" =
+  quickcheck [%here] Int.gen ~sexp_of:Int.sexp_of_t ~f:ignore;
+  [%expect {||}];
+;;
+
+(* Quickcheck pseudo-random generation is different on 32-bit and 64-bit, so we only run
+   Quickcheck failure tests on 64-bit builds. *)
+
+let%expect_test "[quickcheck] failure" [@tags "64-bits-only"] =
+  let cr = CR.Comment in
+  quickcheck [%here] ~cr Int.gen ~sexp_of:Int.sexp_of_t ~f:(fun int ->
+    require [%here] ~cr (int > 100) ~if_false_then_print_s:(lazy [%message "BAD"]));
+  [%expect {|
+    (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
+    BAD
+    (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
+    ("random input"
+      (value -15508265059)
+      (error "printed 1 CRs for Quickcheck-generated input")) |}]
+;;
+
+let%expect_test "[quickcheck] failure with multiple CRs" [@tags "64-bits-only"] =
+  let cr = CR.Comment in
+  quickcheck [%here] ~cr Int.gen ~sexp_of:Int.sexp_of_t ~f:(fun _ ->
+    print_cr [%here] ~cr [%message "first"];
+    require [%here] ~cr false ~if_false_then_print_s:(lazy [%message "second"]));
+  [%expect {|
+    (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
+    first
+    (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
+    second
+    (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
+    ("random input"
+      (value 76753)
+      (error "printed 2 CRs for Quickcheck-generated input")) |}]
+;;
+
+let%expect_test "[quickcheck] raised exception" [@tags "64-bits-only"] =
+  let cr = CR.Comment in
+  show_raise (fun () ->
+    quickcheck [%here] ~cr Int.gen ~sexp_of:Int.sexp_of_t ~f:(fun int ->
+      if int > 100 then raise_s [%message "BAD"]));
+  [%expect {|
+    (raised BAD) |}]
+;;
+
+let%expect_test "[quickcheck] failure with shrinker" [@tags "64-bits-only"] =
+  let cr = CR.Comment in
+  quickcheck [%here]
+    ~cr
+    (List.gen Int.gen)
+    ~sexp_of:[%sexp_of: int list]
+    ~shrinker:(List.shrinker Int.shrinker)
+    ~f:(fun list ->
+      let cmp = Int.compare in
+      require [%here] ~cr
+        (List.is_sorted_strictly ~compare:cmp (List.sort ~cmp list))
+        ~if_false_then_print_s:(lazy [%message "failure"]));
+  [%expect {|
+    (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
+    failure
+    (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
+    failure
+    (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
+    failure
+    (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
+    failure
+    (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
+    failure
+    (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
+    failure
+    (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
+    failure
+    (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
+    failure
+    (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
+    failure
+    (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
+    failure
+    (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
+    failure
+    (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
+    failure
+    (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
+    failure
+    (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
+    failure
+    (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
+    failure
+    (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
+    failure
+    (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
+    failure
+    (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
+    failure
+    (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
+    ("shrunk random input"
+      (shrunk_value (0 0))
+      (shrunk_error "printed 1 CRs for Quickcheck-generated input")
+      (original_value (
+        -15316361719080
+        899550710227882
+        -28890
+        0
+        -2
+        193883522
+        632951644597650
+        0
+        2088375
+        19549488
+        2443
+        3651796
+        -7235
+        569
+        -14577
+        -63319433261349
+        248761871338767
+        1559761
+        -5897793281918))
+      (original_error "printed 1 CRs for Quickcheck-generated input")) |}]
+;;
