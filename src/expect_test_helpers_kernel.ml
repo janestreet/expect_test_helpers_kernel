@@ -369,6 +369,12 @@ let [@inline never] require_allocation_does_not_exceed
       allocation_limit
       here
       f =
+  (* We call [Gc.minor] twice here in order to work around non-determinism in minor
+     collections, by getting the GC and minor heap in a consistent state.  Without these
+     we see occassional failures in tests that are not related to the function under test.
+     This is possibly an Ocaml bug as of 4.05. *)
+  Gc.minor ();
+  Gc.minor ();
   let minor_words_before = Gc.minor_words () in
   let major_words_before = Gc.major_words () in
   (* We wrap [f ()] with [Sys.opaque_identity] to prevent the return value from being
