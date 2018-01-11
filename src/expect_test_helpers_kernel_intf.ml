@@ -12,11 +12,6 @@ module CR = struct
   [@@deriving sexp_of]
 end
 
-module type Print = sig
-  val print_endline : string -> unit
-  val print_string  : string -> unit
-end
-
 module type Print_bin_ios_arg = sig
   type t [@@deriving sexp_of]
   include Binable.S with type t := t
@@ -61,6 +56,15 @@ module type With_equal = sig
 end
 
 module type Expect_test_helpers_kernel = sig
+
+  module type Print_bin_ios_arg          = Print_bin_ios_arg
+  module type Print_bin_ios_with_max_arg = Print_bin_ios_with_max_arg
+  module type Set                        = Set
+  module type With_containers            = With_containers
+  module type With_comparable            = With_comparable
+  module type With_hashable              = With_hashable
+  module type With_compare               = With_compare
+  module type With_equal                 = With_equal
 
   module Allocation_limit : module type of struct include Allocation_limit end
 
