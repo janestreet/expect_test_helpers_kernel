@@ -1,3 +1,7 @@
+## git version
+
+- Removed `print_bin_ios*` functions; use `print_and_check_stable_type`.
+
 ## v0.10
 
 - Removed `show_allocation`; instead use `require_no_allocation` or

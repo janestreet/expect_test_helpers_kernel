@@ -93,42 +93,6 @@ let%expect_test "[print_and_check_stable_type] with conversion that raises" =
       (y 1))) |}];
 ;;
 
-let%expect_test "[print_bin_ios] shows [Shape.Digest] even for empty examples" =
-  print_bin_ios (module Int) [];
-  [%expect {|
-    (bin_shape_digest 698cfa4093fe5e51523842d37b92aeac) |}];
-;;
-
-let%expect_test "[print_bin_ios]" =
-  print_bin_ios (module Int) [ 0; 21; Int.max_value_30_bits ];
-  [%expect {|
-    (bin_shape_digest 698cfa4093fe5e51523842d37b92aeac)
-    "\000"
-    "\021"
-    "\253\255\255\255?" |}];
-;;
-
-let%expect_test "[print_bin_ios_with_max]" =
-  print_bin_ios_with_max [%here] ~cr:Comment
-    (module struct
-      include Int
-      let max_binable_length = 1
-    end)
-    [ 0; 21; Int.max_value_30_bits - 1; Int.max_value_30_bits ];
-  [%expect {|
-    (bin_shape_digest 698cfa4093fe5e51523842d37b92aeac)
-    "\000"
-    "\021"
-    "\253\254\255\255?"
-    "\253\255\255\255?"
-    (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
-    ("Maximum binable length exceeded"
-      (maximum 1)
-      (failures (
-        ((value 1073741823) (length 5) (serialization "\253\255\255\255?"))
-        ((value 1073741822) (length 5) (serialization "\253\254\255\255?"))))) |}];
-;;
-
 let%expect_test "multiple calls to [print_s] create multiple lines" =
   print_s [%message "hello"];
   print_s [%message "there"];

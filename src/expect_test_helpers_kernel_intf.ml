@@ -12,16 +12,6 @@ module CR = struct
   [@@deriving sexp_of]
 end
 
-module type Print_bin_ios_arg = sig
-  type t [@@deriving sexp_of]
-  include Binable.S with type t := t
-end
-
-module type Print_bin_ios_with_max_arg = sig
-  include Print_bin_ios_arg
-  val max_binable_length : int
-end
-
 module type Set = sig
   type t [@@deriving sexp_of]
 
@@ -57,8 +47,6 @@ end
 
 module type Expect_test_helpers_kernel = sig
 
-  module type Print_bin_ios_arg          = Print_bin_ios_arg
-  module type Print_bin_ios_with_max_arg = Print_bin_ios_with_max_arg
   module type Set                        = Set
   module type With_containers            = With_containers
   module type With_comparable            = With_comparable
@@ -118,26 +106,6 @@ module type Expect_test_helpers_kernel = sig
     -> ?max_binable_length : int  (** default is [Int.max_value] *)
     -> Source_code_position.t
     -> (module Stable_int63able with type t = 'a)
-    -> 'a list
-    -> unit
-
-  (** [print_bin_ios] prints the shape digest of a [Binable] type, and the bin-io
-      serialization of example values.  [print_bin_ios] is used to write expect tests that
-      can detect if the serialization format of a stable type changes. *)
-  val print_bin_ios
-    :  (module Print_bin_ios_arg with type t = 'a)
-    -> 'a list
-    -> unit
-
-  (** [print_bin_ios_with_max] is like [print_bin_ios], except it causes a CR to be
-      printed (using [require]) if any serializations are longer than the supplied
-      [max_binable_length].  This is useful for ensuring that serializations fit in some
-      required size, e.g. an ethernet MTU. *)
-  val print_bin_ios_with_max
-    :  ?cr             : CR.t (** default is [CR] *)
-    -> ?hide_positions : bool (** default is [false] when [cr=CR], [true] otherwise *)
-    -> Source_code_position.t
-    -> (module Print_bin_ios_with_max_arg with type t = 'a)
     -> 'a list
     -> unit
 

@@ -211,63 +211,6 @@ let require_does_raise ?cr ?hide_positions ?show_backtrace here f =
   | Raised message -> print_s ?hide_positions message
   | Did_not_raise  -> print_cr ?cr ?hide_positions here [%message "did not raise"]
 
-let bigstring_for_print_bin_ios = ref (Bigstring.create 1024)
-
-let print_bin_ios_internal (type a)
-      ?cr
-      ?hide_positions
-      ?require_bin_io_length_doesn't_exceed
-      (module M : Print_bin_ios_arg with type t = a)
-      (all : a list) =
-  print_s [%message "" ~bin_shape_digest:(
-    Bin_prot.Shape.eval_to_digest_string M.bin_shape_t : string)];
-  let module Failure = struct
-    type t =
-      { value         : M.t
-      ; length        : int
-      ; serialization : string }
-    [@@deriving sexp_of]
-  end in
-  let failures =
-    List.fold all ~init:[] ~f:(fun failures t ->
-      let size = M.bin_writer_t.size t in
-      if size > Bigstring.length !bigstring_for_print_bin_ios
-      then bigstring_for_print_bin_ios := Bigstring.create (Int.ceil_pow2 size);
-      let bigstring = !bigstring_for_print_bin_ios in
-      (* We use [M.bin_writer_t.write] rather than [Bigstring.write_bin_prot] in order to
-         minimize diffs in pre-existing tests.  This matches [Iobuf.fill_bin_prot]. *)
-      let len = M.bin_writer_t.write bigstring t ~pos:0 in
-      assert (len <= size);
-      let serialization = Bigstring.to_string bigstring ~len in
-      print_endline (sprintf "%S" serialization);
-      match require_bin_io_length_doesn't_exceed with
-      | None -> failures
-      | Some (maximum, _) ->
-        if len <= maximum
-        then failures
-        else { Failure. value = t; length = len; serialization } :: failures)
-  in
-  match require_bin_io_length_doesn't_exceed with
-  | None -> ()
-  | Some (maximum, here) ->
-    require ?cr ?hide_positions here (List.is_empty failures)
-      ~if_false_then_print_s:(lazy [%message
-                               "Maximum binable length exceeded"
-                                 (maximum : int)
-                                 (failures : Failure.t list)])
-;;
-
-let print_bin_ios m ts = print_bin_ios_internal m ts
-
-let print_bin_ios_with_max
-      (type a)
-      ?cr ?hide_positions here
-      (module M : Print_bin_ios_with_max_arg with type t = a)
-      ts =
-  print_bin_ios_internal (module M) ts ?cr ?hide_positions
-    ~require_bin_io_length_doesn't_exceed:(M.max_binable_length, here)
-;;
-
 module type Int63able = sig
   type t
   val to_int63     : t -> Int63.t
