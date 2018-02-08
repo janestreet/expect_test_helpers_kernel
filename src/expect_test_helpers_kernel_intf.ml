@@ -142,9 +142,10 @@ module type Expect_test_helpers_kernel = sig
       provided module. If the comparison fails, prints a message that renders the
       arguments as sexps. *)
   val require_equal
-    :  ?cr             : CR.t (** default is [CR]    *)
-    -> ?hide_positions : bool (** default is [false] when [cr=CR], [true] otherwise *)
-    -> ?message        : string
+    :  ?cr                    : CR.t (** default is [CR]    *)
+    -> ?hide_positions        : bool (** default is [false] when [cr=CR], [true] otherwise *)
+    -> ?if_false_then_print_s : Sexp.t Lazy.t
+    -> ?message               : string
     -> Source_code_position.t
     -> (module With_equal with type t = 'a)
     -> 'a

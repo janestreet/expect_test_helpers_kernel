@@ -197,6 +197,14 @@ let%expect_test "[require_equal] failure with [~message]" =
     ("The sky is falling!" 1 2) |}];
 ;;
 
+let%expect_test "[require_equal] failure with [~if_false_then_print_s]" =
+  require_equal [%here] (module Int) ~cr:Comment 1 2
+    ~if_false_then_print_s:(lazy [%message "The sky is falling!"]);
+  [%expect {|
+    (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
+    ("values are not equal" 1 2 "The sky is falling!") |}];
+;;
+
 let%expect_test "[require_compare_equal] success" =
   require_compare_equal [%here] (module Int) ~cr:Comment 1 1;
   [%expect {||}];

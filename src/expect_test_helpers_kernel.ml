@@ -128,12 +128,18 @@ let require ?cr ?hide_positions ?if_false_then_print_s here bool =
 let require_equal (type a)
       ?cr
       ?hide_positions
+      ?if_false_then_print_s
       ?(message = "values are not equal")
       here
       (module M : With_equal with type t = a)
       x y =
   require ?cr ?hide_positions here (M.equal x y)
-    ~if_false_then_print_s:(lazy [%message message ~_:(x : M.t) ~_:(y : M.t)])
+    ~if_false_then_print_s:(
+      lazy [%message
+        message
+          ~_:(x : M.t)
+          ~_:(y : M.t)
+          ~_:(if_false_then_print_s : Sexp.t Lazy.t sexp_option)])
 ;;
 
 let require_compare_equal (type a)
