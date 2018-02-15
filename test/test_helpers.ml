@@ -109,6 +109,16 @@ let%expect_test "[print_s ~hide_positions:true]" =
        lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL) |}];
 ;;
 
+let%expect_test "[~hide_positions:true] for line number from [%of_sexp]" =
+  show_raise ~hide_positions:true (fun () -> [%of_sexp: int * int] (List []));
+  [%expect {|
+    (raised (
+      Sexplib.Conv.Of_sexp_error
+      (Failure
+       "test_helpers.ml line LINE: (int * int)_of_sexp: tuple of size 2 expected")
+      ())) |}];
+;;
+
 let%expect_test "[print_s] bug, apparently" =
   "(\"sets are not equal\"(first (1 2))(second (2))(\"in first but not in second\"(1)))"
   |> Sexp.of_string

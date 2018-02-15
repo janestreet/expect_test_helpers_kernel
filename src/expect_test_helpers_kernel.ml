@@ -67,6 +67,7 @@ let hide_positions_in_string =
          we provide a length of matched data to copy into the output, effectively acting
          like a back-reference in this special case. *)
       "[a-zA-z]:[0-9]+:[0-9]+" , 1, ":LINE:COL"
+    ; "line [0-9]+:", 0, "line LINE:"
     ; "line [0-9]+, characters [0-9]+-[0-9]+" , 0, "line LINE, characters C1-C2" ]
     |> List.map ~f:(fun (pattern, prefix_len, expansion) ->
       let rex = Re.regexp pattern in
@@ -435,8 +436,6 @@ let quickcheck
       ?seed
       ?sizes
       ?trials
-      ?attempts
-      ?filter
       ?shrinker
       ?shrink_attempts
       ?examples
@@ -449,8 +448,6 @@ let quickcheck
       ?seed
       ?sizes
       ?trials
-      ?attempts
-      ?filter
       ?shrinker
       ?shrink_attempts
       ?examples

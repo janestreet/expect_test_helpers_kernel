@@ -293,8 +293,6 @@ module type Expect_test_helpers_kernel = sig
     -> ?seed            : Quickcheck.seed
     -> ?sizes           : int Sequence.t
     -> ?trials          : int
-    -> ?attempts        : int
-    -> ?filter          : ('a -> bool)
     -> ?shrinker        : 'a Quickcheck.Shrinker.t
     -> ?shrink_attempts : Quickcheck.shrink_attempts
     -> ?examples        : 'a list
