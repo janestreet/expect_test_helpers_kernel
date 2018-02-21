@@ -510,74 +510,37 @@ let%expect_test "[quickcheck] failure with shrinker" [@tags "64-bits-only"] =
   let cr = CR.Comment in
   quickcheck [%here]
     ~cr
-    (List.gen Int.gen)
-    ~sexp_of:[%sexp_of: int list]
-    ~shrinker:(List.shrinker Int.shrinker)
-    ~f:(fun list ->
-      let cmp = Int.compare in
-      require [%here] ~cr
-        (List.is_sorted_strictly ~compare:cmp (List.sort ~cmp list))
-        ~if_false_then_print_s:(lazy [%message "failure"]));
+    (Quickcheck.Generator.return 10)
+    ~sexp_of:[%sexp_of: int]
+    ~shrinker:(Quickcheck.Shrinker.create (fun int -> Sequence.singleton (int - 1)))
+    ~f:(fun int ->
+      require [%here] ~cr (int <= 0)
+        ~if_false_then_print_s:(lazy [%message "positive" ~_:(int : int)]));
   [%expect {|
     (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
-    failure
+    (positive 10)
     (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
-    failure
+    (positive 9)
     (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
-    failure
+    (positive 8)
     (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
-    failure
+    (positive 7)
     (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
-    failure
+    (positive 6)
     (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
-    failure
+    (positive 5)
     (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
-    failure
+    (positive 4)
     (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
-    failure
+    (positive 3)
     (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
-    failure
+    (positive 2)
     (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
-    failure
-    (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
-    failure
-    (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
-    failure
-    (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
-    failure
-    (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
-    failure
-    (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
-    failure
-    (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
-    failure
-    (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
-    failure
-    (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
-    failure
+    (positive 1)
     (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
     ("shrunk random input"
-      (shrunk_value (0 0))
+      (shrunk_value 1)
       (shrunk_error "printed 1 CRs for Quickcheck-generated input")
-      (original_value (
-        -15316361719080
-        899550710227882
-        -28890
-        0
-        -2
-        193883522
-        632951644597650
-        0
-        2088375
-        19549488
-        2443
-        3651796
-        -7235
-        569
-        -14577
-        -63319433261349
-        248761871338767
-        1559761
-        -5897793281918))
+      (original_value 10)
       (original_error "printed 1 CRs for Quickcheck-generated input")) |}]
 ;;
