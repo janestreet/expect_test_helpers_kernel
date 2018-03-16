@@ -366,7 +366,7 @@ let print_and_check_comparable_sexps
   let set = M.Set.of_list list in
   let set_sexp = [%sexp (set : M.Set.t)] in
   print_s [%message "Set" ~_:(set_sexp : Sexp.t)];
-  let sorted_list_sexp = [%sexp (List.sort list ~cmp:M.compare : M.t list)] in
+  let sorted_list_sexp = [%sexp (List.sort list ~compare:M.compare : M.t list)] in
   require ?cr ?hide_positions here
     (Sexp.equal set_sexp sorted_list_sexp)
     ~if_false_then_print_s:
@@ -379,7 +379,7 @@ let print_and_check_comparable_sexps
   let map_sexp = [%sexp (map : int M.Map.t)] in
   print_s [%message "Map" ~_:(map_sexp : Sexp.t)];
   let sorted_alist_sexp =
-    [%sexp (List.sort alist ~cmp:(fun (x, _) (y, _) -> M.compare x y)
+    [%sexp (List.sort alist ~compare:(fun (x, _) (y, _) -> M.compare x y)
             : (M.t * int) list)]
   in
   require ?cr ?hide_positions here
@@ -398,7 +398,7 @@ let print_and_check_hashable_sexps
   let hash_set = M.Hash_set.of_list list in
   let hash_set_sexp = [%sexp (hash_set : M.Hash_set.t)] in
   print_s [%message "Hash_set" ~_:(hash_set_sexp : Sexp.t)];
-  let sorted_list_sexp = [%sexp (List.sort list ~cmp:M.compare : M.t list)] in
+  let sorted_list_sexp = [%sexp (List.sort list ~compare:M.compare : M.t list)] in
   require ?cr ?hide_positions here
     (Sexp.equal hash_set_sexp sorted_list_sexp)
     ~if_false_then_print_s:
@@ -411,7 +411,7 @@ let print_and_check_hashable_sexps
   let table_sexp = [%sexp (table : int M.Table.t)] in
   print_s [%message "Table" ~_:(table_sexp : Sexp.t)];
   let sorted_alist_sexp =
-    [%sexp (List.sort alist ~cmp:(fun (x, _) (y, _) -> M.compare x y)
+    [%sexp (List.sort alist ~compare:(fun (x, _) (y, _) -> M.compare x y)
             : (M.t * int) list)]
   in
   require ?cr ?hide_positions here
