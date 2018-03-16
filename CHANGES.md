@@ -1,4 +1,4 @@
-## git version
+## v0.11
 
 - Removed `print_bin_ios*` functions; use `print_and_check_stable_type`.
 
