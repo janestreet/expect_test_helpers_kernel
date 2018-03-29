@@ -6,7 +6,6 @@
     re.pcre
     sexp_pretty
     ))
-  (flags (:standard -safe-string))
   (preprocess (pps (ppx_jane ppxlib.runner)))
   ))
 
