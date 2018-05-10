@@ -12,6 +12,14 @@ module CR = struct
   [@@deriving sexp_of]
 end
 
+module Sexp_style = struct
+  type t =
+    | To_string_mach
+    | To_string_hum
+    | Pretty of Sexp_pretty.Config.t
+  [@@deriving sexp_of]
+end
+
 module type Set = sig
   type t [@@deriving sexp_of]
 
@@ -63,6 +71,16 @@ module type Expect_test_helpers_kernel = sig
         to provide a default for arguments such as [?hide_positions] in functions that
         also have a [?cr] argument. *)
     val hide_unstable_output : t -> bool
+  end
+
+  module Sexp_style : sig
+    include module type of struct include Sexp_style end
+
+    (** Pretty-printing via [Sexp_pretty] with default config, except no colors. *)
+    val default_pretty : t
+
+    (** Pretty-printing via [Sexp_pretty] with most heuristics disabled. *)
+    val simple_pretty  : t
   end
 
   (** [hide_positions_in_string] does line-based regexp matching to replace line numbers
@@ -300,6 +318,10 @@ module type Expect_test_helpers_kernel = sig
     -> f                : ('a -> unit)
     -> 'a Quickcheck.Generator.t
     -> unit
+
+  (** [sexp_style] determines the sexp format used by [sexp_to_string], [print_s], and
+      other functions in this module.  Defaults to [Sexp_style.default_pretty]. *)
+  val sexp_style : Sexp_style.t ref
 
   (** [on_print_cr] determines the behavior of all functions above that print CRs, such as
       [print_cr] and [require].  The rendered string form of the CR is passed to

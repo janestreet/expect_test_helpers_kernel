@@ -4,7 +4,8 @@ include (Expect_test_helpers_kernel_intf
          : (module type of struct include Expect_test_helpers_kernel_intf end
              with module Allocation_limit :=
                Expect_test_helpers_kernel_intf.Allocation_limit
-             with module CR := Expect_test_helpers_kernel_intf.CR))
+             with module CR := Expect_test_helpers_kernel_intf.CR
+             with module Sexp_style := Expect_test_helpers_kernel_intf.Sexp_style))
 
 let print_endline = print_endline
 
@@ -58,6 +59,29 @@ module CR = struct
   ;;
 end
 
+module Sexp_style = struct
+  include Expect_test_helpers_kernel_intf.Sexp_style
+
+  let default_pretty = Pretty (Sexp_pretty.Config.create ~color:false ())
+
+  let simple_pretty =
+    Pretty {
+      indent = 1;
+      data_alignment = Data_not_aligned;
+      color_scheme = [||];
+      atom_coloring = Color_none;
+      atom_printing = Escaped;
+      paren_coloring = false;
+      opening_parens = Same_line;
+      closing_parens = Same_line;
+      comments = Drop;
+      singleton_limit = Singleton_limit (Atom_threshold 0, Character_threshold 0);
+      leading_threshold = (Atom_threshold 0, Character_threshold 0);
+      separator = No_separator;
+      sticky_comments = false;
+    }
+end
+
 let hide_positions_in_string =
   let module Re = Re_pcre in
   let expanders = lazy (
@@ -85,8 +109,15 @@ let maybe_hide_positions_in_string ?(hide_positions = false) string =
   else string
 ;;
 
+let sexp_style = ref Sexp_style.default_pretty
+
 let sexp_to_string ?hide_positions sexp =
-  let string = Sexp_pretty.sexp_to_string sexp in
+  let string =
+    match !sexp_style with
+    | To_string_mach -> Sexp.to_string_mach sexp
+    | To_string_hum  -> Sexp.to_string_hum  sexp
+    | Pretty config  -> Sexp_pretty.pretty_string config sexp
+  in
   maybe_hide_positions_in_string ?hide_positions string
 ;;
 

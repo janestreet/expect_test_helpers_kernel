@@ -119,6 +119,67 @@ let%expect_test "[~hide_positions:true] for line number from [%of_sexp]" =
       ())) |}];
 ;;
 
+let%expect_test "[sexp_style]" =
+  let sexp =
+    List.init 6 ~f:(fun x ->
+      List.init x ~f:(fun y ->
+        List.init y ~f:(fun z ->
+          (x, y, z))))
+    |> [%sexp_of: (int * int * int) list list list]
+  in
+  let test style =
+    Ref.set_temporarily sexp_style style ~f:(fun () ->
+      print_s sexp)
+  in
+  test To_string_mach;
+  [%expect {| (()(())(()((2 1 0)))(()((3 1 0))((3 2 0)(3 2 1)))(()((4 1 0))((4 2 0)(4 2 1))((4 3 0)(4 3 1)(4 3 2)))(()((5 1 0))((5 2 0)(5 2 1))((5 3 0)(5 3 1)(5 3 2))((5 4 0)(5 4 1)(5 4 2)(5 4 3)))) |}];
+  test To_string_hum;
+  [%expect {|
+    (() (()) (() ((2 1 0))) (() ((3 1 0)) ((3 2 0) (3 2 1)))
+     (() ((4 1 0)) ((4 2 0) (4 2 1)) ((4 3 0) (4 3 1) (4 3 2)))
+     (() ((5 1 0)) ((5 2 0) (5 2 1)) ((5 3 0) (5 3 1) (5 3 2))
+      ((5 4 0) (5 4 1) (5 4 2) (5 4 3)))) |}];
+  test Sexp_style.simple_pretty;
+  [%expect {|
+    (()
+     (())
+     (() ((2 1 0)))
+     (() ((3 1 0)) ((3 2 0) (3 2 1)))
+     (() ((4 1 0)) ((4 2 0) (4 2 1)) ((4 3 0) (4 3 1) (4 3 2)))
+     (()
+      ((5 1 0))
+      ((5 2 0) (5 2 1))
+      ((5 3 0) (5 3 1) (5 3 2))
+      ((5 4 0) (5 4 1) (5 4 2) (5 4 3)))) |}];
+  test Sexp_style.default_pretty;
+  [%expect {|
+    (()
+     (())
+     (() ((2 1 0)))
+     (()
+      ((3 1 0))
+      ((3 2 0)
+       (3 2 1)))
+     (()
+      ((4 1 0))
+      ((4 2 0)
+       (4 2 1))
+      ((4 3 0)
+       (4 3 1)
+       (4 3 2)))
+     (()
+      ((5 1 0))
+      ((5 2 0)
+       (5 2 1))
+      ((5 3 0)
+       (5 3 1)
+       (5 3 2))
+      ((5 4 0)
+       (5 4 1)
+       (5 4 2)
+       (5 4 3)))) |}];
+;;
+
 let%expect_test "[print_s] bug, apparently" =
   "(\"sets are not equal\"(first (1 2))(second (2))(\"in first but not in second\"(1)))"
   |> Sexp.of_string
