@@ -342,6 +342,17 @@ let show_raise (type a) ?hide_positions ?show_backtrace (f : unit -> a) =
      | Raised message -> message)
 ;;
 
+let prepare_heap_to_count_minor_allocation () =
+  (* We call [Gc.minor] to empty the minor heap, so that our allocation is unlikely to
+     trigger a minor gc. *)
+  Gc.minor ();
+  (* We allocate two words in case the [Gc.minor] finishes a major gc cycle, in which case
+     it requests a minor gc to occur at the next minor allocation.  We don't want the
+     subsequent minor allocation to trigger a minor GC, because there is a bug in the
+     OCaml runtime that double counts [Gc.minor_words] in that case. *)
+  ignore (Sys.opaque_identity (ref (Sys.opaque_identity 1)) : int ref);
+;;
+
 (* We disable inlining for [require_allocation_does_not_exceed] so the GC stats and the
    call to [f] are never rearranged. *)
 let [@inline never] require_allocation_does_not_exceed
@@ -350,12 +361,7 @@ let [@inline never] require_allocation_does_not_exceed
       allocation_limit
       here
       f =
-  (* We call [Gc.minor] twice here in order to work around non-determinism in minor
-     collections, by getting the GC and minor heap in a consistent state.  Without these
-     we see occassional failures in tests that are not related to the function under test.
-     This is possibly an Ocaml bug as of 4.05. *)
-  Gc.minor ();
-  Gc.minor ();
+  prepare_heap_to_count_minor_allocation ();
   let minor_words_before = Gc.minor_words () in
   let major_words_before = Gc.major_words () in
   (* We wrap [f ()] with [Sys.opaque_identity] to prevent the return value from being

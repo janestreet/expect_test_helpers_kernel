@@ -230,6 +230,17 @@ module type Expect_test_helpers_kernel = sig
     -> (unit -> _)
     -> unit
 
+  (** [prepare_heap_to_count_minor_allocation] calls [Gc] functions to setup the heap
+      so that one can subsequently measure minor allocation via:
+
+      {[
+        let minor_words_before = Gc.minor_words () in
+        (* ... do stuff ... *)
+        let minor_words_after = Gc.minor_words () in
+        let minor_words_allocated = minor_words_after - minor_words_before in
+      ]} *)
+  val prepare_heap_to_count_minor_allocation : unit -> unit
+
   (** [require_allocation_does_not_exceed] is a specialized form of [require] that only
       produces output when [f ()] allocates more than the given limits.  The output will
       include the actual number of major and minor words allocated.  We do NOT include
