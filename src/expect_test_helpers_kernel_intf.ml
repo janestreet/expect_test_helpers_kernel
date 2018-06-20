@@ -340,10 +340,4 @@ module type Expect_test_helpers_kernel = sig
       replace or extend the default behavior.  For example, some testing harnesses may
       choose to abort a series of tests after the first CR is printed. *)
   val on_print_cr : (string -> unit) ref
-
-  (** We export [Expect_test_config] to override [Expect_test_config.run f] so that, if [f
-      ()] raises, [run] prints the exception rather than raising.  Printing works better
-      with the expect-test workflow than an unhandled exception, because there is a
-      [.corrected] file that one can accept and inspect. *)
-  module Expect_test_config : Expect_test_config.S with type 'a IO.t = 'a
 end

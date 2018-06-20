@@ -503,20 +503,3 @@ let quickcheck
   | Ok ()       -> ()
   | Error error -> print_cr here ?cr ?hide_positions [%sexp (error : Error.t)]
 ;;
-
-module Expect_test_config = struct
-  include Expect_test_config
-
-  let run f =
-    try
-      f ();
-    with exn ->
-      let backtrace = Backtrace.Exn.most_recent () in
-      Ref.set_temporarily Backtrace.elide false ~f:(fun () ->
-        print_s [%message
-          "\
-  A top-level expression in [let%expect] raised -- consider using [show_raise]"
-            ~_:(exn : Exn.t)
-            (backtrace : Backtrace.t)])
-  ;;
-end
