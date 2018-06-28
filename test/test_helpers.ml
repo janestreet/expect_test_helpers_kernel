@@ -537,8 +537,8 @@ let%expect_test "[quickcheck] failure" [@tags "64-bits-only"] =
     (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
     BAD
     (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
-    ("random input"
-      (value -15508265059)
+    ("Base_quickcheck.Test.run: test failed"
+      (input -15508265059)
       (error "printed 1 CRs for Quickcheck-generated input")) |}]
 ;;
 
@@ -553,18 +553,21 @@ let%expect_test "[quickcheck] failure with multiple CRs" [@tags "64-bits-only"] 
     (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
     second
     (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
-    ("random input"
-      (value 76753)
+    ("Base_quickcheck.Test.run: test failed"
+      (input 76753)
       (error "printed 2 CRs for Quickcheck-generated input")) |}]
 ;;
 
 let%expect_test "[quickcheck] raised exception" [@tags "64-bits-only"] =
   let cr = CR.Comment in
-  show_raise (fun () ->
+  require_does_not_raise [%here] (fun () ->
     quickcheck [%here] ~cr Int.gen ~sexp_of:Int.sexp_of_t ~f:(fun int ->
       if int > 100 then raise_s [%message "BAD"]));
   [%expect {|
-    (raised BAD) |}]
+    (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
+    ("Base_quickcheck.Test.run: test failed"
+      (input 76753)
+      (error BAD)) |}]
 ;;
 
 let%expect_test "[quickcheck] failure with shrinker" [@tags "64-bits-only"] =
@@ -599,9 +602,7 @@ let%expect_test "[quickcheck] failure with shrinker" [@tags "64-bits-only"] =
     (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
     (positive 1)
     (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
-    ("shrunk random input"
-      (shrunk_value 1)
-      (shrunk_error "printed 1 CRs for Quickcheck-generated input")
-      (original_value 10)
-      (original_error "printed 1 CRs for Quickcheck-generated input")) |}]
+    ("Base_quickcheck.Test.run: test failed"
+      (input 1)
+      (error "printed 1 CRs for Quickcheck-generated input")) |}]
 ;;

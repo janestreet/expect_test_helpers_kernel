@@ -314,7 +314,7 @@ module type Expect_test_helpers_kernel = sig
     -> unit
 
   (** [quickcheck] is similar to [Quickcheck.test].  It stops after the first iteration
-      that prints a CR, as detected by [on_print_cr]. *)
+      that raises or prints a CR, as detected by [on_print_cr]. *)
   val quickcheck
     :  Source_code_position.t
     -> ?cr              : CR.t (** default is [CR] *)
