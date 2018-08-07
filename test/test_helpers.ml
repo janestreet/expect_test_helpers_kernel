@@ -522,7 +522,7 @@ let%expect_test "[on_print_cr]" =
 ;;
 
 let%expect_test "[quickcheck] success" =
-  quickcheck [%here] Int.gen ~sexp_of:Int.sexp_of_t ~f:ignore;
+  quickcheck [%here] Int.quickcheck_generator ~sexp_of:Int.sexp_of_t ~f:ignore;
   [%expect {||}];
 ;;
 
@@ -531,7 +531,7 @@ let%expect_test "[quickcheck] success" =
 
 let%expect_test "[quickcheck] failure" [@tags "64-bits-only"] =
   let cr = CR.Comment in
-  quickcheck [%here] ~cr Int.gen ~sexp_of:Int.sexp_of_t ~f:(fun int ->
+  quickcheck [%here] ~cr Int.quickcheck_generator ~sexp_of:Int.sexp_of_t ~f:(fun int ->
     require [%here] ~cr (int > 100) ~if_false_then_print_s:(lazy [%message "BAD"]));
   [%expect {|
     (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)
@@ -544,7 +544,7 @@ let%expect_test "[quickcheck] failure" [@tags "64-bits-only"] =
 
 let%expect_test "[quickcheck] failure with multiple CRs" [@tags "64-bits-only"] =
   let cr = CR.Comment in
-  quickcheck [%here] ~cr Int.gen ~sexp_of:Int.sexp_of_t ~f:(fun _ ->
+  quickcheck [%here] ~cr Int.quickcheck_generator ~sexp_of:Int.sexp_of_t ~f:(fun _ ->
     print_cr [%here] ~cr [%message "first"];
     require [%here] ~cr false ~if_false_then_print_s:(lazy [%message "second"]));
   [%expect {|
@@ -561,7 +561,7 @@ let%expect_test "[quickcheck] failure with multiple CRs" [@tags "64-bits-only"] 
 let%expect_test "[quickcheck] raised exception" [@tags "64-bits-only"] =
   let cr = CR.Comment in
   require_does_not_raise [%here] (fun () ->
-    quickcheck [%here] ~cr Int.gen ~sexp_of:Int.sexp_of_t ~f:(fun int ->
+    quickcheck [%here] ~cr Int.quickcheck_generator ~sexp_of:Int.sexp_of_t ~f:(fun int ->
       if int > 100 then raise_s [%message "BAD"]));
   [%expect {|
     (* require-failed: lib/expect_test_helpers_kernel/test/test_helpers.ml:LINE:COL. *)

@@ -473,23 +473,23 @@ let quickcheck
       ?seed
       ?sizes
       ?trials
-      ?shrinker
+      ?shrinker:quickcheck_shrinker
       ?shrink_attempts
       ?examples
       ~sexp_of
       ~f
-      gen
+      quickcheck_generator
   =
   match
     Quickcheck.test_or_error
       ?seed
       ?sizes
       ?trials
-      ?shrinker
+      ?shrinker:quickcheck_shrinker
       ?shrink_attempts
       ?examples
       ~sexp_of
-      gen
+      quickcheck_generator
       ~f:(fun elt ->
         let cr_count = ref 0 in
         let original_on_print_cr = !on_print_cr in
