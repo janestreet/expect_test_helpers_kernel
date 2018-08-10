@@ -113,10 +113,9 @@ let%expect_test "[~hide_positions:true] for line number from [%of_sexp]" =
   show_raise ~hide_positions:true (fun () -> [%of_sexp: int * int] (List []));
   [%expect {|
     (raised (
-      Sexplib.Conv.Of_sexp_error
-      (Failure
-       "test_helpers.ml line LINE: (int * int)_of_sexp: tuple of size 2 expected")
-      ())) |}];
+      Of_sexp_error
+      "test_helpers.ml line LINE: (int * int)_of_sexp: tuple of size 2 expected"
+      (invalid_sexp ()))) |}];
 ;;
 
 let%expect_test "[sexp_style]" =
