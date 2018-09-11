@@ -83,10 +83,10 @@ module Sexp_style = struct
 end
 
 let hide_positions_in_string =
-  let module Re = Re_pcre in
+  let module Re = Re.Pcre in
   let expanders = lazy (
     [ (* This first pattern has an alphabetic prefix because we want to match exceptions
-         and their file positions without also matching timestamps.  However, [Re_pcre]
+         and their file positions without also matching timestamps.  However, [Re.Pcre]
          doesn't implement back-references, precluding a simple substitution.  Instead,
          we provide a length of matched data to copy into the output, effectively acting
          like a back-reference in this special case. *)

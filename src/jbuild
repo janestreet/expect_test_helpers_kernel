@@ -3,7 +3,7 @@
   (public_name expect_test_helpers_kernel)
   (libraries (
     core_kernel
-    re.pcre
+    re
     sexp_pretty
     ))
   (preprocess (pps (ppx_jane ppxlib.runner)))
