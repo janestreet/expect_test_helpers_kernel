@@ -8,7 +8,11 @@ module Allocation_limit = struct
 end
 
 module CR = struct
-  type t = CR | CR_soon | CR_someday | Comment
+  type t =
+    | CR
+    | CR_soon
+    | CR_someday
+    | Comment
   [@@deriving sexp_of]
 end
 
@@ -23,24 +27,27 @@ end
 module type Set = sig
   type t [@@deriving sexp_of]
 
-  val diff     : t -> t -> t
-  val equal    : t -> t -> bool
+  val diff : t -> t -> t
+  val equal : t -> t -> bool
   val is_empty : t -> bool
 end
 
 module type With_containers = sig
   type t [@@deriving sexp]
+
   include Comparable with type t := t
-  include Hashable   with type t := t
+  include Hashable with type t := t
 end
 
 module type With_comparable = sig
   type t [@@deriving sexp]
+
   include Comparable with type t := t
 end
 
 module type With_hashable = sig
   type t [@@deriving compare, sexp]
+
   include Hashable with type t := t
 end
 
@@ -50,22 +57,26 @@ end
 
 module type With_equal = sig
   type t [@@deriving sexp_of]
+
   include Equal.S with type t := t
 end
 
 module type Expect_test_helpers_kernel = sig
+  module type Set = Set
+  module type With_containers = With_containers
+  module type With_comparable = With_comparable
+  module type With_hashable = With_hashable
+  module type With_compare = With_compare
+  module type With_equal = With_equal
 
-  module type Set                        = Set
-  module type With_containers            = With_containers
-  module type With_comparable            = With_comparable
-  module type With_hashable              = With_hashable
-  module type With_compare               = With_compare
-  module type With_equal                 = With_equal
-
-  module Allocation_limit : module type of struct include Allocation_limit end
+  module Allocation_limit : module type of struct
+    include Allocation_limit
+  end
 
   module CR : sig
-    include module type of struct include CR end
+    include module type of struct
+    include CR
+  end
 
     (** [hide_unstable_output t] returns [false] if [t = CR] and [true] otherwise.  Useful
         to provide a default for arguments such as [?hide_positions] in functions that
@@ -74,13 +85,15 @@ module type Expect_test_helpers_kernel = sig
   end
 
   module Sexp_style : sig
-    include module type of struct include Sexp_style end
+    include module type of struct
+    include Sexp_style
+  end
 
     (** Pretty-printing via [Sexp_pretty] with default config, except no colors. *)
     val default_pretty : t
 
     (** Pretty-printing via [Sexp_pretty] with most heuristics disabled. *)
-    val simple_pretty  : t
+    val simple_pretty : t
   end
 
   (** [hide_positions_in_string] does line-based regexp matching to replace line numbers
@@ -91,26 +104,20 @@ module type Expect_test_helpers_kernel = sig
   (** Renders an s-expression as a string.  With [~hide_positions:true], patterns in the
       string that match OCaml-style file positions are modified to hide the line number,
       column number, and character positions, to make output less fragile. *)
-  val sexp_to_string
-    :  ?hide_positions : bool (** default is [false] *)
-    -> Sexp.t
-    -> string
+  val sexp_to_string : ?hide_positions:bool (** default is [false] *) -> Sexp.t -> string
 
   (** For printing an s-expression to stdout.  [hide_positions] works as in
       [sexp_to_string]. *)
-  val print_s
-    :  ?hide_positions : bool (** default is [false] *)
-    -> Sexp.t
-    -> unit
+  val print_s : ?hide_positions:bool (** default is [false] *) -> Sexp.t -> unit
 
   (** [print_and_check_stable_type] prints the bin-io digest for the given type, and the
       bin-io and sexp serializations of the given values.  Prints an error message for any
       serializations that fail to round-trip, and for any bin-io serializations that
       exceed [max_binable_length]. *)
   val print_and_check_stable_type
-    :  ?cr                 : CR.t (** default is [CR] *)
-    -> ?hide_positions     : bool (** default is [false] when [cr=CR], [true] otherwise *)
-    -> ?max_binable_length : int  (** default is [Int.max_value] *)
+    :  ?cr:CR.t (** default is [CR] *)
+    -> ?hide_positions:bool (** default is [false] when [cr=CR], [true] otherwise *)
+    -> ?max_binable_length:int (** default is [Int.max_value] *)
     -> Source_code_position.t
     -> (module Stable_without_comparator with type t = 'a)
     -> 'a list
@@ -119,9 +126,9 @@ module type Expect_test_helpers_kernel = sig
   (** [print_and_check_stable_int63able_type] works like [print_and_check_stable_type],
       and includes [Int63.t] serializations. *)
   val print_and_check_stable_int63able_type
-    :  ?cr                 : CR.t (** default is [CR] *)
-    -> ?hide_positions     : bool (** default is [false] when [cr=CR], [true] otherwise *)
-    -> ?max_binable_length : int  (** default is [Int.max_value] *)
+    :  ?cr:CR.t (** default is [CR] *)
+    -> ?hide_positions:bool (** default is [false] when [cr=CR], [true] otherwise *)
+    -> ?max_binable_length:int (** default is [Int.max_value] *)
     -> Source_code_position.t
     -> (module Stable_int63able with type t = 'a)
     -> 'a list
@@ -135,8 +142,8 @@ module type Expect_test_helpers_kernel = sig
       property. There is no need to 'X' a [CR require-failed]; simply fix the property
       that triggered the [print_cr] and re-run the test to restore the empty output. *)
   val print_cr
-    :  ?cr             : CR.t (** default is [CR] *)
-    -> ?hide_positions : bool (** default is [false] when [cr=CR], [true] otherwise *)
+    :  ?cr:CR.t (** default is [CR] *)
+    -> ?hide_positions:bool (** default is [false] when [cr=CR], [true] otherwise *)
     -> Source_code_position.t
     -> Sexp.t
     -> unit
@@ -149,9 +156,9 @@ module type Expect_test_helpers_kernel = sig
       problem, but that would otherwise be too voluminous.  [if_false_then_print_s] is
       lazy to avoid construction of the sexp except when needed. *)
   val require
-    :  ?cr             : CR.t (** default is [CR] *)
-    -> ?hide_positions : bool (** default is [false] when [cr=CR], [true] otherwise *)
-    -> ?if_false_then_print_s : Sexp.t Lazy.t
+    :  ?cr:CR.t (** default is [CR] *)
+    -> ?hide_positions:bool (** default is [false] when [cr=CR], [true] otherwise *)
+    -> ?if_false_then_print_s:Sexp.t Lazy.t
     -> Source_code_position.t
     -> bool
     -> unit
@@ -160,10 +167,10 @@ module type Expect_test_helpers_kernel = sig
       provided module. If the comparison fails, prints a message that renders the
       arguments as sexps. *)
   val require_equal
-    :  ?cr                    : CR.t (** default is [CR]    *)
-    -> ?hide_positions        : bool (** default is [false] when [cr=CR], [true] otherwise *)
-    -> ?if_false_then_print_s : Sexp.t Lazy.t
-    -> ?message               : string
+    :  ?cr:CR.t (** default is [CR]    *)
+    -> ?hide_positions:bool (** default is [false] when [cr=CR], [true] otherwise *)
+    -> ?if_false_then_print_s:Sexp.t Lazy.t
+    -> ?message:string
     -> Source_code_position.t
     -> (module With_equal with type t = 'a)
     -> 'a
@@ -173,9 +180,9 @@ module type Expect_test_helpers_kernel = sig
   (** Like [require_equal], but derives an equality predicate from a comparison
       function. *)
   val require_compare_equal
-    :  ?cr             : CR.t (** default is [CR]    *)
-    -> ?hide_positions : bool (** default is [false] when [cr=CR], [true] otherwise *)
-    -> ?message        : string
+    :  ?cr:CR.t (** default is [CR]    *)
+    -> ?hide_positions:bool (** default is [false] when [cr=CR], [true] otherwise *)
+    -> ?message:string
     -> Source_code_position.t
     -> (module With_compare with type t = 'a)
     -> 'a
@@ -185,9 +192,9 @@ module type Expect_test_helpers_kernel = sig
   (** Like [require_equal], but when equality fails produces a message including sexps of
       both [Set.diff first second] and [Set.diff second first] to aid in debugging. *)
   val require_sets_are_equal
-    :  ?cr             : CR.t    (** default is [CR]    *)
-    -> ?hide_positions : bool    (** default is [false] when [cr=CR], [true] otherwise *)
-    -> ?names          : string * string  (** default is ["first", "second"] *)
+    :  ?cr:CR.t (** default is [CR]    *)
+    -> ?hide_positions:bool (** default is [false] when [cr=CR], [true] otherwise *)
+    -> ?names:string * string (** default is ["first", "second"] *)
     -> Source_code_position.t
     -> (module Set with type t = 'a)
     -> 'a
@@ -202,8 +209,8 @@ module type Expect_test_helpers_kernel = sig
       available here as it is still valuable when initially writing tests and
       debugging. *)
   val show_raise
-    :  ?hide_positions : bool (** default is [false] *)
-    -> ?show_backtrace : bool (** default is [false] *)
+    :  ?hide_positions:bool (** default is [false] *)
+    -> ?show_backtrace:bool (** default is [false] *)
     -> (unit -> _)
     -> unit
 
@@ -213,9 +220,9 @@ module type Expect_test_helpers_kernel = sig
       mistakes like incomplete partial application that silently would not raise, but for
       the wrong reason. *)
   val require_does_not_raise
-    :  ?cr             : CR.t (** default is [CR] *)
-    -> ?hide_positions : bool (** default is [false] when [cr=CR], [true] otherwise *)
-    -> ?show_backtrace : bool (** default is [false] *)
+    :  ?cr:CR.t (** default is [CR] *)
+    -> ?hide_positions:bool (** default is [false] when [cr=CR], [true] otherwise *)
+    -> ?show_backtrace:bool (** default is [false] *)
     -> Source_code_position.t
     -> (unit -> unit)
     -> unit
@@ -223,15 +230,15 @@ module type Expect_test_helpers_kernel = sig
   (** [require_does_raise] is like [show_raise], but additionally prints a CR if the
       function does not raise. *)
   val require_does_raise
-    :  ?cr             : CR.t (** default is [CR] *)
-    -> ?hide_positions : bool (** default is [false] when [cr=CR], [true] otherwise *)
-    -> ?show_backtrace : bool (** default is [false] *)
+    :  ?cr:CR.t (** default is [CR] *)
+    -> ?hide_positions:bool (** default is [false] when [cr=CR], [true] otherwise *)
+    -> ?show_backtrace:bool (** default is [false] *)
     -> Source_code_position.t
     -> (unit -> _)
     -> unit
 
-  (** [prepare_heap_to_count_minor_allocation] calls [Gc] functions to setup the heap
-      so that one can subsequently measure minor allocation via:
+  (** [prepare_heap_to_count_minor_allocation] calls [Gc] functions to setup the heap so
+      that one can subsequently measure minor allocation via:
 
       {[
         let minor_words_before = Gc.minor_words () in
@@ -264,8 +271,8 @@ module type Expect_test_helpers_kernel = sig
       intended to be measured.  With the former idiom, the compiler cannot do such
       optimization and must compute the result of [f ()]. *)
   val require_allocation_does_not_exceed
-    :  ?cr             : CR.t (** default is [CR] *)
-    -> ?hide_positions : bool (** default is [false] when [cr=CR], [true] otherwise *)
+    :  ?cr:CR.t (** default is [CR] *)
+    -> ?hide_positions:bool (** default is [false] when [cr=CR], [true] otherwise *)
     -> Allocation_limit.t
     -> Source_code_position.t
     -> (unit -> 'a)
@@ -274,8 +281,8 @@ module type Expect_test_helpers_kernel = sig
   (** [require_no_allocation here f] is equivalent to [require_allocation_does_not_exceed
       (Minor_words 0) here f]. *)
   val require_no_allocation
-    :  ?cr             : CR.t (** default is [CR] *)
-    -> ?hide_positions : bool (** default is [false] when [cr=CR], [true] otherwise *)
+    :  ?cr:CR.t (** default is [CR] *)
+    -> ?hide_positions:bool (** default is [false] when [cr=CR], [true] otherwise *)
     -> Source_code_position.t
     -> (unit -> 'a)
     -> 'a
@@ -286,8 +293,8 @@ module type Expect_test_helpers_kernel = sig
       prints a CR if the sexp does not correspond to an association list keyed on
       elements. *)
   val print_and_check_container_sexps
-    :  ?cr             : CR.t (** default is [CR] *)
-    -> ?hide_positions : bool (** default is [false] when [cr=CR], [true] otherwise *)
+    :  ?cr:CR.t (** default is [CR] *)
+    -> ?hide_positions:bool (** default is [false] when [cr=CR], [true] otherwise *)
     -> Source_code_position.t
     -> (module With_containers with type t = 'a)
     -> 'a list
@@ -296,8 +303,8 @@ module type Expect_test_helpers_kernel = sig
   (** [print_and_check_comparable_sexps] is like [print_and_check_container_sexps] for
       maps and sets only. *)
   val print_and_check_comparable_sexps
-    :  ?cr             : CR.t (** default is [CR] *)
-    -> ?hide_positions : bool (** default is [false] when [cr=CR], [true] otherwise *)
+    :  ?cr:CR.t (** default is [CR] *)
+    -> ?hide_positions:bool (** default is [false] when [cr=CR], [true] otherwise *)
     -> Source_code_position.t
     -> (module With_comparable with type t = 'a)
     -> 'a list
@@ -306,8 +313,8 @@ module type Expect_test_helpers_kernel = sig
   (** [print_and_check_hashable_sexps] is like [print_and_check_container_sexps] for hash
       tables and hash sets only. *)
   val print_and_check_hashable_sexps
-    :  ?cr             : CR.t (** default is [CR] *)
-    -> ?hide_positions : bool (** default is [false] when [cr=CR], [true] otherwise *)
+    :  ?cr:CR.t (** default is [CR] *)
+    -> ?hide_positions:bool (** default is [false] when [cr=CR], [true] otherwise *)
     -> Source_code_position.t
     -> (module With_hashable with type t = 'a)
     -> 'a list
@@ -317,16 +324,16 @@ module type Expect_test_helpers_kernel = sig
       that raises or prints a CR, as detected by [on_print_cr]. *)
   val quickcheck
     :  Source_code_position.t
-    -> ?cr              : CR.t (** default is [CR] *)
-    -> ?hide_positions  : bool (** default is [false] when [cr=CR], [true] otherwise *)
-    -> ?seed            : Quickcheck.seed
-    -> ?sizes           : int Sequence.t
-    -> ?trials          : int
-    -> ?shrinker        : 'a Quickcheck.Shrinker.t
-    -> ?shrink_attempts : Quickcheck.shrink_attempts
-    -> ?examples        : 'a list
-    -> sexp_of          : ('a -> Sexp.t)
-    -> f                : ('a -> unit)
+    -> ?cr:CR.t (** default is [CR] *)
+    -> ?hide_positions:bool (** default is [false] when [cr=CR], [true] otherwise *)
+    -> ?seed:Quickcheck.seed
+    -> ?sizes:int Sequence.t
+    -> ?trials:int
+    -> ?shrinker:'a Quickcheck.Shrinker.t
+    -> ?shrink_attempts:Quickcheck.shrink_attempts
+    -> ?examples:'a list
+    -> sexp_of:('a -> Sexp.t)
+    -> f:('a -> unit)
     -> 'a Quickcheck.Generator.t
     -> unit
 
