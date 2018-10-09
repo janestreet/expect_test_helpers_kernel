@@ -22,24 +22,6 @@ Error: This expression has type unit but an expression was expected of type
          (module Core_kernel.Stable_int63able with type t = 'a)
 |}]
 
-let () = require_equal [%here] ()
-
-[%%expect
-  {|
-Line _, characters 31-33:
-Error: This expression has type unit but an expression was expected of type
-         (module Expect_test_helpers_kernel.With_equal with type t = 'a)
-|}]
-
-let () = require_compare_equal [%here] ()
-
-[%%expect
-  {|
-Line _, characters 39-41:
-Error: This expression has type unit but an expression was expected of type
-         (module Expect_test_helpers_kernel.With_compare with type t = 'a)
-|}]
-
 let () = print_and_check_container_sexps [%here] ()
 
 [%%expect

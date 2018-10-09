@@ -9,9 +9,12 @@ build: [
   ["jbuilder" "build" "-p" name "-j" jobs]
 ]
 depends: [
+  "base"
+  "base_quickcheck"
   "core_kernel"
   "ppx_jane"
   "sexp_pretty"
+  "stdio"
   "jbuilder"                {build & >= "1.0+beta18.1"}
   "ocaml-migrate-parsetree" {>= "1.0"}
   "ppxlib"                  {>= "0.1.0"}
