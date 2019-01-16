@@ -34,10 +34,18 @@ let%expect_test "[sexp_style]" =
     List.init 6 ~f:(fun x -> List.init x ~f:(fun y -> List.init y ~f:(fun z -> x, y, z)))
     |> [%sexp_of: (int * int * int) list list list]
   in
-  let test style = Ref.set_temporarily sexp_style style ~f:(fun () -> print_s sexp) in
+  let test style =
+    Ref.set_temporarily sexp_style style ~f:(fun () ->
+      print_s sexp;
+      require
+        [%here]
+        (String.is_suffix (sexp_to_string sexp) ~suffix:"\n")
+        ~if_false_then_print_s:(lazy [%message "no endline"]))
+  in
   test To_string_mach;
   [%expect
-    {| (()(())(()((2 1 0)))(()((3 1 0))((3 2 0)(3 2 1)))(()((4 1 0))((4 2 0)(4 2 1))((4 3 0)(4 3 1)(4 3 2)))(()((5 1 0))((5 2 0)(5 2 1))((5 3 0)(5 3 1)(5 3 2))((5 4 0)(5 4 1)(5 4 2)(5 4 3)))) |}];
+    {|
+      (()(())(()((2 1 0)))(()((3 1 0))((3 2 0)(3 2 1)))(()((4 1 0))((4 2 0)(4 2 1))((4 3 0)(4 3 1)(4 3 2)))(()((5 1 0))((5 2 0)(5 2 1))((5 3 0)(5 3 1)(5 3 2))((5 4 0)(5 4 1)(5 4 2)(5 4 3)))) |}];
   test To_string_hum;
   [%expect
     {|

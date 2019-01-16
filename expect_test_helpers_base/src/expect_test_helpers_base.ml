@@ -101,8 +101,8 @@ let sexp_style = ref Sexp_style.default_pretty
 let sexp_to_string ?hide_positions sexp =
   let string =
     match !sexp_style with
-    | To_string_mach -> Sexp.to_string_mach sexp
-    | To_string_hum -> Sexp.to_string_hum sexp
+    | To_string_mach -> Sexp.to_string_mach sexp ^ "\n"
+    | To_string_hum -> Sexp.to_string_hum sexp ^ "\n"
     | Pretty config -> Sexp_pretty.pretty_string config sexp
   in
   maybe_hide_positions_in_string ?hide_positions string
