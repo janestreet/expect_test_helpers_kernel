@@ -196,8 +196,8 @@ let%expect_test "[require_no_allocation] ignores non-allocating functions" =
   [%expect {| |}]
 ;;
 
-let%expect_test "[require_no_allocation] shows breach and expected, but does not show \
-                 allocation"
+let%expect_test ("[require_no_allocation] shows breach and expected, but does not show \
+                  allocation"[@tags "no-js"])
   =
   ignore
     ( require_no_allocation ~cr:Comment [%here] (fun () ->
@@ -209,7 +209,9 @@ let%expect_test "[require_no_allocation] shows breach and expected, but does not
     ("allocation exceeded limit" (allocation_limit (Minor_words 0))) |}]
 ;;
 
-let%expect_test "[require_allocation_does_not_exceed] shows breach but not allocation" =
+let%expect_test ("[require_allocation_does_not_exceed] shows breach but not allocation"[@tags
+                   "no-js"])
+  =
   ignore
     ( require_allocation_does_not_exceed ~cr:Comment (Minor_words 1) [%here] (fun () ->
         List.map [ 1; 2; 3 ] ~f:(fun i -> i + 1))
