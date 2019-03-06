@@ -83,13 +83,13 @@ end
       If [f] returns a value that should be ignored, use this idiom:
 
       {[
-        ignore (show_allocation f : t)
+        ignore (require_allocation_does_not_exceed ... f : t)
       ]}
 
       rather than this idiom:
 
       {[
-        show_allocation (fun () -> ignore (f () : t))
+        require_allocation_does_not_exceed ... (fun () -> ignore (f () : t))
       ]}
 
       With the latter idiom, the compiler may optimize the computation of [f ()] taking
