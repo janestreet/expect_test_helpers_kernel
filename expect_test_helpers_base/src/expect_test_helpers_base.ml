@@ -162,7 +162,7 @@ let require_equal
           message
             ~_:(x : M.t)
             ~_:(y : M.t)
-            ~_:(if_false_then_print_s : Sexp.t Lazy.t sexp_option)])
+            ~_:(if_false_then_print_s : (Sexp.t Lazy.t option[@sexp.option]))])
 ;;
 
 let require_compare_equal
@@ -238,9 +238,9 @@ let try_with ?raise_message ?(show_backtrace = false) (type a) (f : unit -> a) =
         Raised
           [%message
             ""
-              ~_:(raise_message : string sexp_option)
+              ~_:(raise_message : (string option[@sexp.option]))
               ~_:(exn : exn)
-              (backtrace : Backtrace.t sexp_option)]))
+              (backtrace : (Backtrace.t option[@sexp.option]))]))
 ;;
 
 let require_does_not_raise ?cr ?hide_positions ?show_backtrace here f =

@@ -52,7 +52,11 @@ let print_and_check_stable_internal
       let int63 = Option.map int63able ~f:(fun (module I) -> I.to_int63 original) in
       print_s
         ?hide_positions
-        [%message "" (sexp : Sexp.t) (bin_io : string) (int63 : Int63.t sexp_option)];
+        [%message
+          ""
+            (sexp : Sexp.t)
+            (bin_io : string)
+            (int63 : (Int63.t option[@sexp.option]))];
       let sexp_roundtrip = M.t_of_sexp sexp in
       require
         ?cr
@@ -204,8 +208,8 @@ let[@inline never] require_allocation_does_not_exceed
          [%message
            "allocation exceeded limit"
              (allocation_limit : Allocation_limit.t)
-             (minor_words_allocated : int sexp_option)
-             (major_words_allocated : int sexp_option)]));
+             (minor_words_allocated : (int option[@sexp.option]))
+             (major_words_allocated : (int option[@sexp.option]))]));
   x
 ;;
 
