@@ -171,11 +171,11 @@ let prepare_heap_to_count_minor_allocation () =
 (* We disable inlining for [require_allocation_does_not_exceed] so the GC stats and the
    call to [f] are never rearranged. *)
 let[@inline never] require_allocation_does_not_exceed
-     ?(cr = CR.CR)
-     ?hide_positions
-     allocation_limit
-     here
-     f
+                     ?(cr = CR.CR)
+                     ?hide_positions
+                     allocation_limit
+                     here
+                     f
   =
   prepare_heap_to_count_minor_allocation ();
   let minor_words_before = Gc.minor_words () in

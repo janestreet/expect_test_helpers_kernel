@@ -28,8 +28,8 @@ end
 
 module type Expect_test_helpers_kernel = sig
   include module type of struct
-  include Expect_test_helpers_base
-end
+    include Expect_test_helpers_base
+  end
 
   module type With_containers = With_containers
   module type With_comparable = With_comparable

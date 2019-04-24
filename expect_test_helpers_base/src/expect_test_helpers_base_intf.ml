@@ -44,8 +44,8 @@ module type Expect_test_helpers_base = sig
 
   module CR : sig
     include module type of struct
-    include CR
-  end
+      include CR
+    end
 
     (** [hide_unstable_output t] returns [false] if [t = CR] and [true] otherwise.  Useful
         to provide a default for arguments such as [?hide_positions] in functions that
@@ -55,8 +55,8 @@ module type Expect_test_helpers_base = sig
 
   module Sexp_style : sig
     include module type of struct
-    include Sexp_style
-  end
+      include Sexp_style
+    end
 
     (** Pretty-printing via [Sexp_pretty] with default config, except no colors. *)
     val default_pretty : t
