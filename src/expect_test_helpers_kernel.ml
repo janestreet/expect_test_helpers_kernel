@@ -170,7 +170,7 @@ let prepare_heap_to_count_minor_allocation () =
 
 (* We disable inlining for [require_allocation_does_not_exceed] so the GC stats and the
    call to [f] are never rearranged. *)
-let[@inline never] require_allocation_does_not_exceed
+let[@inline never] require_allocation_does_not_exceed_private
                      ?(cr = CR.CR)
                      ?hide_positions
                      allocation_limit
@@ -213,8 +213,12 @@ let[@inline never] require_allocation_does_not_exceed
   x
 ;;
 
-let require_no_allocation ?cr ?hide_positions here f =
-  require_allocation_does_not_exceed ?cr ?hide_positions (Minor_words 0) here f
+let require_allocation_does_not_exceed ?hide_positions allocation_limit here f =
+  require_allocation_does_not_exceed_private ?hide_positions allocation_limit here f
+;;
+
+let require_no_allocation ?hide_positions here f =
+  require_allocation_does_not_exceed ?hide_positions (Minor_words 0) here f
 ;;
 
 let print_and_check_comparable_sexps
@@ -310,3 +314,7 @@ let print_and_check_container_sexps (type a) ?cr ?hide_positions here m list =
   print_and_check_comparable_sexps ?cr ?hide_positions here (module M) list;
   print_and_check_hashable_sexps ?cr ?hide_positions here (module M) list
 ;;
+
+module Expect_test_helpers_kernel_private = struct
+  let require_allocation_does_not_exceed = require_allocation_does_not_exceed_private
+end

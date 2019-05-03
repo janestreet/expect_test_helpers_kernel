@@ -192,7 +192,7 @@ let%expect_test "[require_sets_are_equal] failure with names" =
 ;;
 
 let%expect_test "[require_no_allocation] ignores non-allocating functions" =
-  require_no_allocation ~cr:Comment [%here] (fun () -> ());
+  require_no_allocation [%here] (fun () -> ());
   [%expect {| |}]
 ;;
 
@@ -200,8 +200,11 @@ let%expect_test ("[require_no_allocation] shows breach and expected, but does no
                   allocation"[@tags "no-js"])
   =
   ignore
-    ( require_no_allocation ~cr:Comment [%here] (fun () ->
-        List.map [ 1; 2; 3 ] ~f:(fun i -> i + 1))
+    ( Expect_test_helpers_kernel_private.require_allocation_does_not_exceed
+        ~cr:Comment
+        (Minor_words 0)
+        [%here]
+        (fun () -> List.map [ 1; 2; 3 ] ~f:(fun i -> i + 1))
       : int list );
   [%expect
     {|
@@ -213,8 +216,11 @@ let%expect_test ("[require_allocation_does_not_exceed] shows breach but not allo
                    "no-js"])
   =
   ignore
-    ( require_allocation_does_not_exceed ~cr:Comment (Minor_words 1) [%here] (fun () ->
-        List.map [ 1; 2; 3 ] ~f:(fun i -> i + 1))
+    ( Expect_test_helpers_kernel_private.require_allocation_does_not_exceed
+        ~cr:Comment
+        (Minor_words 1)
+        [%here]
+        (fun () -> List.map [ 1; 2; 3 ] ~f:(fun i -> i + 1))
       : int list );
   [%expect
     {|

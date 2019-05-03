@@ -95,10 +95,14 @@ module type Expect_test_helpers_kernel = sig
       With the latter idiom, the compiler may optimize the computation of [f ()] taking
       advantage of the fact that the result is ignored, and eliminate allocation that is
       intended to be measured.  With the former idiom, the compiler cannot do such
-      optimization and must compute the result of [f ()]. *)
+      optimization and must compute the result of [f ()].
+
+      There is no [?cr:CR.t] argument, because one should not release a test with a
+      failing call, due to instability across compiler optimization levels.  Even if a
+      test allocates too much without much optimization, it may allocate less with more
+      optimization. *)
   val require_allocation_does_not_exceed
-    :  ?cr:CR.t (** default is [CR] *)
-    -> ?hide_positions:bool (** default is [false] when [cr=CR], [true] otherwise *)
+    :  ?hide_positions:bool (** default is [false] when [cr=CR], [true] otherwise *)
     -> Allocation_limit.t
     -> Source_code_position.t
     -> (unit -> 'a)
@@ -107,8 +111,7 @@ module type Expect_test_helpers_kernel = sig
   (** [require_no_allocation here f] is equivalent to [require_allocation_does_not_exceed
       (Minor_words 0) here f]. *)
   val require_no_allocation
-    :  ?cr:CR.t (** default is [CR] *)
-    -> ?hide_positions:bool (** default is [false] when [cr=CR], [true] otherwise *)
+    :  ?hide_positions:bool (** default is [false] when [cr=CR], [true] otherwise *)
     -> Source_code_position.t
     -> (unit -> 'a)
     -> 'a
@@ -145,4 +148,18 @@ module type Expect_test_helpers_kernel = sig
     -> (module With_hashable with type t = 'a)
     -> 'a list
     -> unit
+
+  (** This module is called [Expect_test_helpers_kernel_private] rather than [Private]
+      because [include Expect_test_helpers_kernel] is a common idiom, and we don't want to
+      interfere with other [Private] modules or create problems due to multiple
+      definitions of [Private]. *)
+  module Expect_test_helpers_kernel_private : sig
+    val require_allocation_does_not_exceed
+      :  ?cr:CR.t
+      -> ?hide_positions:bool
+      -> Allocation_limit.t
+      -> Source_code_position.t
+      -> (unit -> 'a)
+      -> 'a
+  end
 end
