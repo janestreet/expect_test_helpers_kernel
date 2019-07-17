@@ -118,9 +118,8 @@ let%expect_test "[print_s] bug, apparently" =
     {|
     ("sets are not equal"
       (first (1 2))
-      (second                     (2))
-      ("in first but not in second"(
-      1))) |}]
+      (second                       (2))
+      ("in first but not in second" (1))) |}]
 ;;
 
 let%expect_test "[require_sets_are_equal] success" =

@@ -64,7 +64,7 @@ module Sexp_style = struct
       ; singleton_limit = Singleton_limit (Atom_threshold 0, Character_threshold 0)
       ; leading_threshold = Atom_threshold 0, Character_threshold 0
       ; separator = No_separator
-      ; sticky_comments = false
+      ; sticky_comments = After
       }
   ;;
 end
