@@ -102,7 +102,7 @@ module type Expect_test_helpers_kernel = sig
       test allocates too much without much optimization, it may allocate less with more
       optimization. *)
   val require_allocation_does_not_exceed
-    :  ?hide_positions:bool (** default is [false] when [cr=CR], [true] otherwise *)
+    :  ?hide_positions:bool (** default is [false] *)
     -> Allocation_limit.t
     -> Source_code_position.t
     -> (unit -> 'a)
@@ -111,7 +111,7 @@ module type Expect_test_helpers_kernel = sig
   (** [require_no_allocation here f] is equivalent to [require_allocation_does_not_exceed
       (Minor_words 0) here f]. *)
   val require_no_allocation
-    :  ?hide_positions:bool (** default is [false] when [cr=CR], [true] otherwise *)
+    :  ?hide_positions:bool (** default is [false] *)
     -> Source_code_position.t
     -> (unit -> 'a)
     -> 'a
