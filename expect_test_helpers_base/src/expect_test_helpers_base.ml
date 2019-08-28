@@ -1,13 +1,6 @@
 open! Base
 open! Stdio
-
-include (
-  Expect_test_helpers_base_intf :
-    module type of struct
-    include Expect_test_helpers_base_intf
-  end
-  with module CR := Expect_test_helpers_base_intf.CR
-  with module Sexp_style := Expect_test_helpers_base_intf.Sexp_style)
+include Expect_test_helpers_base_intf
 
 let print_string string =
   print_string string;
@@ -15,7 +8,7 @@ let print_string string =
 ;;
 
 module CR = struct
-  include Expect_test_helpers_base_intf.CR
+  include CR
 
   let message t here =
     let cr cr =
@@ -46,7 +39,7 @@ module CR = struct
 end
 
 module Sexp_style = struct
-  include Expect_test_helpers_base_intf.Sexp_style
+  include Sexp_style
 
   let default_pretty = Pretty (Sexp_pretty.Config.create ~color:false ())
 

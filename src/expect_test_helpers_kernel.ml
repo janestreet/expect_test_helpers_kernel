@@ -1,15 +1,9 @@
 open! Core_kernel
 include Expect_test_helpers_base
-
-include (
-  Expect_test_helpers_kernel_intf :
-    module type of struct
-    include Expect_test_helpers_kernel_intf
-  end
-  with module Allocation_limit := Expect_test_helpers_kernel_intf.Allocation_limit)
+include Expect_test_helpers_kernel_intf
 
 module Allocation_limit = struct
-  include Expect_test_helpers_kernel_intf.Allocation_limit
+  include Allocation_limit
 
   let is_ok t ~major_words_allocated ~minor_words_allocated =
     match t with
