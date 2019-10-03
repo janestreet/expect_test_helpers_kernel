@@ -101,8 +101,15 @@ let sexp_to_string ?hide_positions sexp =
   maybe_hide_positions_in_string ?hide_positions string
 ;;
 
+let wrap f =
+  Staged.stage (fun ?hide_positions string ->
+    f (maybe_hide_positions_in_string ?hide_positions string))
+;;
+
+let print_endline = Staged.unstage (wrap print_endline)
+let print_string = Staged.unstage (wrap print_string)
 let print_s ?hide_positions sexp = print_string (sexp_to_string ?hide_positions sexp)
-let on_print_cr = ref print_endline
+let on_print_cr = ref (fun string -> print_endline string)
 
 let print_cr_with_optional_message
       ?(cr = CR.CR)

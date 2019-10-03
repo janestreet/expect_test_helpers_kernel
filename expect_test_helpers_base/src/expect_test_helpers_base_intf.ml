@@ -79,6 +79,9 @@ module type Expect_test_helpers_base = sig
       [sexp_to_string]. *)
   val print_s : ?hide_positions:bool (** default is [false] *) -> Sexp.t -> unit
 
+  val print_string : ?hide_positions:bool (** default is [false] *) -> string -> unit
+  val print_endline : ?hide_positions:bool (** default is [false] *) -> string -> unit
+
   (** [print_cr here message] prints a [CR require-failed], which will appear in
       expect-test output. The CR will appear in the feature owner's [fe todo], thus
       preventing release of the feature. [print_cr] is an expect-test-friendly version of

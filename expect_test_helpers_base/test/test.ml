@@ -19,6 +19,22 @@ let%expect_test "[print_s ~hide_positions:true]" =
        lib/expect_test_helpers_base/test/test.ml:LINE:COL) |}]
 ;;
 
+let%expect_test "[print_string ~hide_positions:true]" =
+  print_string ~hide_positions:true (Sexp.to_string_hum [%message [%here] [%here]]);
+  [%expect
+    {|
+      (lib/expect_test_helpers_base/test/test.ml:LINE:COL
+       lib/expect_test_helpers_base/test/test.ml:LINE:COL) |}]
+;;
+
+let%expect_test "[print_endline ~hide_positions:true]" =
+  print_endline ~hide_positions:true (Sexp.to_string_hum [%message [%here] [%here]]);
+  [%expect
+    {|
+      (lib/expect_test_helpers_base/test/test.ml:LINE:COL
+       lib/expect_test_helpers_base/test/test.ml:LINE:COL) |}]
+;;
+
 let%expect_test "[~hide_positions:true] for line number from [%of_sexp]" =
   show_raise ~hide_positions:true (fun () -> [%of_sexp: int * int] (List []));
   [%expect
