@@ -151,36 +151,19 @@ let print_and_check_stable_int63able_type
     list
 ;;
 
-let prepare_heap_to_count_minor_allocation () =
-  (* We call [Gc.minor] to empty the minor heap, so that our allocation is unlikely to
-     trigger a minor gc. *)
-  Gc.minor ();
-  (* We allocate two words in case the [Gc.minor] finishes a major gc cycle, in which case
-     it requests a minor gc to occur at the next minor allocation.  We don't want the
-     subsequent minor allocation to trigger a minor GC, because there is a bug in the
-     OCaml runtime that double counts [Gc.minor_words] in that case. *)
-  ignore (Sys.opaque_identity (ref (Sys.opaque_identity 1)) : int ref)
-;;
-
-(* We disable inlining for [require_allocation_does_not_exceed] so the GC stats and the
-   call to [f] are never rearranged. *)
-let[@cold] require_allocation_does_not_exceed_private
-             ?(cr = CR.CR)
-             ?hide_positions
-             allocation_limit
-             here
-             f
+let require_allocation_does_not_exceed_private
+      ?(cr = CR.CR)
+      ?hide_positions
+      allocation_limit
+      here
+      f
   =
-  prepare_heap_to_count_minor_allocation ();
-  let minor_words_before = Gc.minor_words () in
-  let major_words_before = Gc.major_words () in
-  (* We wrap [f ()] with [Sys.opaque_identity] to prevent the return value from being
-     optimized away. *)
-  let x = Sys.opaque_identity (f ()) in
-  let minor_words_after = Gc.minor_words () in
-  let major_words_after = Gc.major_words () in
-  let major_words_allocated = major_words_after - major_words_before in
-  let minor_words_allocated = minor_words_after - minor_words_before in
+  let ( x
+      , { Gc.For_testing.Allocation_report.major_words_allocated; minor_words_allocated }
+      )
+    =
+    Gc.For_testing.measure_allocation f
+  in
   require
     here
     ~cr
@@ -223,7 +206,7 @@ let print_and_check_comparable_sexps
       (module M : With_comparable with type t = a)
       list
   =
-  let set = M.Set.of_list list in
+  let set = Set.of_list (module M) list in
   let set_sexp = [%sexp (set : M.Set.t)] in
   print_s [%message "Set" ~_:(set_sexp : Sexp.t)];
   let sorted_list_sexp = [%sexp (List.sort list ~compare:M.compare : M.t list)] in
@@ -239,7 +222,7 @@ let print_and_check_comparable_sexps
             (set_sexp : Sexp.t)
             (sorted_list_sexp : Sexp.t)]);
   let alist = List.mapi list ~f:(fun i x -> x, i) in
-  let map = M.Map.of_alist_exn alist in
+  let map = Map.of_alist_exn (module M) alist in
   let map_sexp = [%sexp (map : int M.Map.t)] in
   print_s [%message "Map" ~_:(map_sexp : Sexp.t)];
   let sorted_alist_sexp =
@@ -267,7 +250,7 @@ let print_and_check_hashable_sexps
       (module M : With_hashable with type t = a)
       list
   =
-  let hash_set = M.Hash_set.of_list list in
+  let hash_set = Hash_set.of_list (module M) list in
   let hash_set_sexp = [%sexp (hash_set : M.Hash_set.t)] in
   print_s [%message "Hash_set" ~_:(hash_set_sexp : Sexp.t)];
   let sorted_list_sexp = [%sexp (List.sort list ~compare:M.compare : M.t list)] in
@@ -283,7 +266,7 @@ let print_and_check_hashable_sexps
             (hash_set_sexp : Sexp.t)
             (sorted_list_sexp : Sexp.t)]);
   let alist = List.mapi list ~f:(fun i x -> x, i) in
-  let table = M.Table.of_alist_exn alist in
+  let table = Hashtbl.of_alist_exn (module M) alist in
   let table_sexp = [%sexp (table : int M.Table.t)] in
   print_s [%message "Table" ~_:(table_sexp : Sexp.t)];
   let sorted_alist_sexp =

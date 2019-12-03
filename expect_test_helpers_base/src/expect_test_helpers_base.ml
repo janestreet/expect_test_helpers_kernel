@@ -279,7 +279,7 @@ let quickcheck
       quickcheck_generator
   =
   match
-    Base_quickcheck.Test.run
+    Base_quickcheck.Test.result
       ~config:{ seed; test_count = trials; shrink_count = shrink_attempts; sizes }
       ?examples
       (module struct
@@ -290,18 +290,15 @@ let quickcheck
         let quickcheck_shrinker = shrinker
       end)
       ~f:(fun elt ->
-        let cr_count = ref 0 in
-        let original_on_print_cr = !on_print_cr in
-        Ref.set_temporarily
-          on_print_cr
-          (fun string ->
-             Int.incr cr_count;
-             original_on_print_cr string)
-          ~f:(fun () -> f elt);
-        if !cr_count > 0
-        then Or_error.errorf "printed %d CRs for Quickcheck-generated input" !cr_count
-        else Ok ())
+        let crs = Queue.create () in
+        (* We set [on_print_cr] to accumulate CRs in [crs]; it affects both [f elt] as
+           well as our call to [require_does_not_raise]. *)
+        Ref.set_temporarily on_print_cr (Queue.enqueue crs) ~f:(fun () ->
+          require_does_not_raise here ?cr ?hide_positions (fun () -> f elt));
+        if Queue.is_empty crs then Ok () else Error (Queue.to_list crs))
   with
   | Ok () -> ()
-  | Error error -> print_cr here ?cr ?hide_positions [%sexp (error : Error.t)]
+  | Error (input, output) ->
+    print_s [%message "quickcheck: test failed" ~input:(sexp_of input : Sexp.t)];
+    List.iter output ~f:print_endline
 ;;

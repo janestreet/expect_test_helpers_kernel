@@ -17,7 +17,7 @@ depends: [
   "ppx_jane"
   "sexp_pretty"
   "stdio"
-  "dune"            {>= "1.5.1"}
+  "dune"            {>= "2.0.0"}
   "re"              {>= "1.8.0"}
 ]
 synopsis: "Helpers for writing expectation tests"

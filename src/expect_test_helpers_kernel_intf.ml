@@ -7,23 +7,61 @@ module Allocation_limit = struct
   [@@deriving sexp_of]
 end
 
-module type With_containers = sig
-  type t [@@deriving sexp]
-
-  include Comparable with type t := t
-  include Hashable with type t := t
-end
-
 module type With_comparable = sig
-  type t [@@deriving sexp]
+  type t [@@deriving compare, sexp_of]
+  type key := t
 
-  include Comparable with type t := t
+  include Comparator.S with type t := t
+
+  (* [Set] and [Map] submodules are here because we specifically want to test whether they
+     have been constructed correctly, as opposed to testing the functor that creates
+     them. *)
+
+  module Set : sig
+    type t = (key, comparator_witness) Set.t [@@deriving sexp_of]
+  end
+
+  module Map : sig
+    type 'a t = (key, 'a, comparator_witness) Map.t [@@deriving sexp_of]
+  end
 end
+
+module Comparable_satisfies_with_comparable (M : sig
+    type t [@@deriving sexp_of]
+
+    include Comparable.S with type t := t
+  end) : With_comparable =
+  M
 
 module type With_hashable = sig
-  type t [@@deriving compare, sexp]
+  type t [@@deriving compare, hash, sexp_of]
+  type key := t
 
-  include Hashable with type t := t
+  (* [Hash_set] and [Table] submodules are here because we specifically want to test
+     whether they have been constructed correctly, as opposed to testing the functor that
+     creates them. *)
+
+  module Hash_set : sig
+    type t = key Hash_set.t [@@deriving sexp_of]
+  end
+
+  module Table : sig
+    type 'a t = (key, 'a) Hashtbl.t [@@deriving sexp_of]
+  end
+end
+
+module Hashable_satisfies_with_hashable (M : sig
+    type t [@@deriving sexp_of]
+
+    include Hashable.S with type t := t
+  end) : With_hashable =
+  M
+
+module type With_containers = sig
+  type t
+
+  include With_comparable with type t := t
+  include With_hashable with type t := t
 end
 
 module type Expect_test_helpers_kernel = sig
@@ -62,17 +100,6 @@ module type Expect_test_helpers_kernel = sig
     -> (module Stable_int63able with type t = 'a)
     -> 'a list
     -> unit
-
-  (** [prepare_heap_to_count_minor_allocation] calls [Gc] functions to setup the heap so
-      that one can subsequently measure minor allocation via:
-
-      {[
-        let minor_words_before = Gc.minor_words () in
-        (* ... do stuff ... *)
-        let minor_words_after = Gc.minor_words () in
-        let minor_words_allocated = minor_words_after - minor_words_before in
-      ]} *)
-  val prepare_heap_to_count_minor_allocation : unit -> unit
 
   (** [require_allocation_does_not_exceed] is a specialized form of [require] that only
       produces output when [f ()] allocates more than the given limits.  The output will

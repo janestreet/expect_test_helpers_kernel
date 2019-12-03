@@ -339,12 +339,9 @@ let%expect_test ("[quickcheck] failure"[@tags "64-bits-only"]) =
       require [%here] ~cr (int > 100) ~if_false_then_print_s:(lazy [%message "BAD"]));
   [%expect
     {|
+    ("quickcheck: test failed" (input -15508265059))
     (* require-failed: lib/expect_test_helpers_base/test/test.ml:LINE:COL. *)
-    BAD
-    (* require-failed: lib/expect_test_helpers_base/test/test.ml:LINE:COL. *)
-    ("Base_quickcheck.Test.run: test failed"
-      (input -15508265059)
-      (error "printed 1 CRs for Quickcheck-generated input")) |}]
+    BAD |}]
 ;;
 
 let%expect_test ("[quickcheck] failure with multiple CRs"[@tags "64-bits-only"]) =
@@ -359,14 +356,11 @@ let%expect_test ("[quickcheck] failure with multiple CRs"[@tags "64-bits-only"])
       require [%here] ~cr false ~if_false_then_print_s:(lazy [%message "second"]));
   [%expect
     {|
+    ("quickcheck: test failed" (input 76753))
     (* require-failed: lib/expect_test_helpers_base/test/test.ml:LINE:COL. *)
     first
     (* require-failed: lib/expect_test_helpers_base/test/test.ml:LINE:COL. *)
-    second
-    (* require-failed: lib/expect_test_helpers_base/test/test.ml:LINE:COL. *)
-    ("Base_quickcheck.Test.run: test failed"
-      (input 76753)
-      (error "printed 2 CRs for Quickcheck-generated input")) |}]
+    second |}]
 ;;
 
 let%expect_test ("[quickcheck] raised exception"[@tags "64-bits-only"]) =
@@ -380,10 +374,9 @@ let%expect_test ("[quickcheck] raised exception"[@tags "64-bits-only"]) =
       ~f:(fun int -> if int > 100 then raise_s [%message "BAD"]));
   [%expect
     {|
+    ("quickcheck: test failed" (input 76753))
     (* require-failed: lib/expect_test_helpers_base/test/test.ml:LINE:COL. *)
-    ("Base_quickcheck.Test.run: test failed"
-      (input 76753)
-      (error BAD)) |}]
+    ("unexpectedly raised" BAD) |}]
 ;;
 
 let%expect_test ("[quickcheck] failure with shrinker"[@tags "64-bits-only"]) =
@@ -402,28 +395,7 @@ let%expect_test ("[quickcheck] failure with shrinker"[@tags "64-bits-only"]) =
         ~if_false_then_print_s:(lazy [%message "positive" ~_:(int : int)]));
   [%expect
     {|
+    ("quickcheck: test failed" (input 1))
     (* require-failed: lib/expect_test_helpers_base/test/test.ml:LINE:COL. *)
-    (positive 10)
-    (* require-failed: lib/expect_test_helpers_base/test/test.ml:LINE:COL. *)
-    (positive 9)
-    (* require-failed: lib/expect_test_helpers_base/test/test.ml:LINE:COL. *)
-    (positive 8)
-    (* require-failed: lib/expect_test_helpers_base/test/test.ml:LINE:COL. *)
-    (positive 7)
-    (* require-failed: lib/expect_test_helpers_base/test/test.ml:LINE:COL. *)
-    (positive 6)
-    (* require-failed: lib/expect_test_helpers_base/test/test.ml:LINE:COL. *)
-    (positive 5)
-    (* require-failed: lib/expect_test_helpers_base/test/test.ml:LINE:COL. *)
-    (positive 4)
-    (* require-failed: lib/expect_test_helpers_base/test/test.ml:LINE:COL. *)
-    (positive 3)
-    (* require-failed: lib/expect_test_helpers_base/test/test.ml:LINE:COL. *)
-    (positive 2)
-    (* require-failed: lib/expect_test_helpers_base/test/test.ml:LINE:COL. *)
-    (positive 1)
-    (* require-failed: lib/expect_test_helpers_base/test/test.ml:LINE:COL. *)
-    ("Base_quickcheck.Test.run: test failed"
-      (input 1)
-      (error "printed 1 CRs for Quickcheck-generated input")) |}]
+    (positive 1) |}]
 ;;
