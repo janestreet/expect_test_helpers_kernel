@@ -38,7 +38,7 @@ let%expect_test "[print_and_check_stable_type] with broken round-trip" =
           let of_sexpable = of_serializeable
         end)
 
-    include Binable.Of_binable
+    include Binable.Of_binable_without_uuid [@alert "-legacy"]
         (String)
         (struct
           type t = int
