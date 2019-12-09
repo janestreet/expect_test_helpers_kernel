@@ -30,11 +30,12 @@ module CR = struct
     | Comment ->
       String.concat
         [ "(* require-failed: "; here |> Source_code_position.to_string; ". *)" ]
+    | Suppress -> ""
   ;;
 
   let hide_unstable_output = function
     | CR -> false
-    | CR_soon | CR_someday | Comment -> true
+    | CR_soon | CR_someday | Comment | Suppress -> true
   ;;
 end
 
@@ -117,12 +118,15 @@ let print_cr_with_optional_message
       here
       optional_message
   =
-  let cr = CR.message cr here |> maybe_hide_positions_in_string ~hide_positions in
-  !on_print_cr
-    (match optional_message with
-     | None -> cr
-     | Some sexp ->
-       String.concat [ cr; "\n"; String.rstrip (sexp_to_string ~hide_positions sexp) ])
+  match cr with
+  | Suppress -> ()
+  | _ ->
+    let cr = CR.message cr here |> maybe_hide_positions_in_string ~hide_positions in
+    !on_print_cr
+      (match optional_message with
+       | None -> cr
+       | Some sexp ->
+         String.concat [ cr; "\n"; String.rstrip (sexp_to_string ~hide_positions sexp) ])
 ;;
 
 let print_cr ?cr ?hide_positions here message =

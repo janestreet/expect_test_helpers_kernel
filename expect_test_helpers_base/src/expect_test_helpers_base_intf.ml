@@ -6,6 +6,7 @@ module CR = struct
     | CR_soon
     | CR_someday
     | Comment
+    | Suppress
   [@@deriving sexp_of]
 end
 
