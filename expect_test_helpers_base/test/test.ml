@@ -269,6 +269,28 @@ let%expect_test "[require_does_raise ~hide_positions:true] success" =
     lib/expect_test_helpers_base/test/test.ml:LINE:COL |}]
 ;;
 
+let%expect_test "[replace]" =
+  "/tmp/dir.tmp.123456/file.txt copied from /jenga/root/app/foo/file.txt"
+  |> replace ~pattern:"/tmp/dir.tmp.123456" ~with_:"$TMP"
+  |> replace ~pattern:"/jenga/root" ~with_:"$ROOT"
+  |> print_endline;
+  [%expect {| $TMP/file.txt copied from $ROOT/app/foo/file.txt |}]
+;;
+
+let%expect_test "[replace_s]" =
+  [%sexp
+    "copied file"
+  , { dst = "/tmp/dir.tmp.123456/file.txt"; src = "/jenga/root/app/foo/file.txt" }]
+  |> replace_s ~pattern:"/tmp/dir.tmp.123456" ~with_:"$TMP"
+  |> replace_s ~pattern:"/jenga/root" ~with_:"$ROOT"
+  |> print_s;
+  [%expect
+    {|
+    ("copied file" (
+      (dst $TMP/file.txt)
+      (src $ROOT/app/foo/file.txt))) |}]
+;;
+
 let%expect_test "[on_print_cr]" =
   let cr = CR.Comment in
   let hide_positions = true in

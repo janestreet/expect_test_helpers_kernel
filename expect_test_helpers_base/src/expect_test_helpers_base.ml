@@ -102,6 +102,14 @@ let sexp_to_string ?hide_positions sexp =
   maybe_hide_positions_in_string ?hide_positions string
 ;;
 
+let replace = String.substr_replace_all
+
+let rec replace_s (sexp : Sexp.t) ~pattern ~with_ : Sexp.t =
+  match sexp with
+  | Atom atom -> Atom (replace atom ~pattern ~with_)
+  | List list -> List (List.map list ~f:(replace_s ~pattern ~with_))
+;;
+
 let wrap f =
   Staged.stage (fun ?hide_positions string ->
     f (maybe_hide_positions_in_string ?hide_positions string))

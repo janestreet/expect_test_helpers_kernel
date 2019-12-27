@@ -76,6 +76,12 @@ module type Expect_test_helpers_base = sig
       column number, and character positions, to make output less fragile. *)
   val sexp_to_string : ?hide_positions:bool (** default is [false] *) -> Sexp.t -> string
 
+  (** Substitutes [with_] for every occurrence of [pattern] in a string. *)
+  val replace : string -> pattern:string -> with_:string -> string
+
+  (** Like [replace], for every atom in a sexp. *)
+  val replace_s : Sexp.t -> pattern:string -> with_:string -> Sexp.t
+
   (** For printing an s-expression to stdout.  [hide_positions] works as in
       [sexp_to_string]. *)
   val print_s : ?hide_positions:bool (** default is [false] *) -> Sexp.t -> unit
