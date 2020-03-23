@@ -73,9 +73,7 @@ module type Expect_test_helpers_kernel = sig
   module type With_comparable = With_comparable
   module type With_hashable = With_hashable
 
-  module Allocation_limit : module type of struct
-    include Allocation_limit
-  end
+  (** {3 Serialization tests} *)
 
   (** [print_and_check_stable_type] prints the bin-io digest for the given type, and the
       bin-io and sexp serializations of the given values.  Prints an error message for any
@@ -100,48 +98,6 @@ module type Expect_test_helpers_kernel = sig
     -> (module Stable_int63able with type t = 'a)
     -> 'a list
     -> unit
-
-  (** [require_allocation_does_not_exceed] is a specialized form of [require] that only
-      produces output when [f ()] allocates more than the given limits.  The output will
-      include the actual number of major and minor words allocated.  We do NOT include
-      these numbers in the successful case because those numbers are not stable with
-      respect to compiler versions and build flags.
-
-      If [f] returns a value that should be ignored, use this idiom:
-
-      {[
-        ignore (require_allocation_does_not_exceed ... f : t)
-      ]}
-
-      rather than this idiom:
-
-      {[
-        require_allocation_does_not_exceed ... (fun () -> ignore (f () : t))
-      ]}
-
-      With the latter idiom, the compiler may optimize the computation of [f ()] taking
-      advantage of the fact that the result is ignored, and eliminate allocation that is
-      intended to be measured.  With the former idiom, the compiler cannot do such
-      optimization and must compute the result of [f ()].
-
-      There is no [?cr:CR.t] argument, because one should not release a test with a
-      failing call, due to instability across compiler optimization levels.  Even if a
-      test allocates too much without much optimization, it may allocate less with more
-      optimization. *)
-  val require_allocation_does_not_exceed
-    :  ?hide_positions:bool (** default is [false] *)
-    -> Allocation_limit.t
-    -> Source_code_position.t
-    -> (unit -> 'a)
-    -> 'a
-
-  (** [require_no_allocation here f] is equivalent to [require_allocation_does_not_exceed
-      (Minor_words 0) here f]. *)
-  val require_no_allocation
-    :  ?hide_positions:bool (** default is [false] *)
-    -> Source_code_position.t
-    -> (unit -> 'a)
-    -> 'a
 
   (** [print_and_check_container_sexps] prints the sexp representation of maps, sets, hash
       tables, and hash sets based on the given values.  For sets and hash sets, prints a
@@ -175,6 +131,56 @@ module type Expect_test_helpers_kernel = sig
     -> (module With_hashable with type t = 'a)
     -> 'a list
     -> unit
+
+  (** {3 Allocation tests} *)
+
+
+  module Allocation_limit : module type of struct
+    include Allocation_limit
+  end
+
+  (** [require_allocation_does_not_exceed] is a specialized form of [require] that only
+      produces output when [f ()] allocates more than the given limits.  The output will
+      include the actual number of major and minor words allocated.  We do NOT include
+      these numbers in the successful case because those numbers are not stable with
+      respect to compiler versions and build flags.
+
+      If [f] returns a value that should be ignored, use this idiom:
+
+      {[
+        ignore (require_allocation_does_not_exceed ... f : t)
+      ]}
+
+      rather than this idiom:
+
+      {[
+        require_allocation_does_not_exceed ... (fun () -> ignore (f () : t))
+      ]}
+
+      With the latter idiom, the compiler may optimize the computation of [f ()] taking
+      advantage of the fact that the result is ignored, and eliminate allocation that is
+      intended to be measured.  With the former idiom, the compiler cannot do such
+      optimization and must compute the result of [f ()].
+
+      See documentation above about CRs and workflows for failing allocation tests. *)
+  val require_allocation_does_not_exceed
+    :  ?hide_positions:bool (** default is [false] *)
+    -> Allocation_limit.t
+    -> Source_code_position.t
+    -> (unit -> 'a)
+    -> 'a
+
+  (** [require_no_allocation here f] is equivalent to [require_allocation_does_not_exceed
+      (Minor_words 0) here f].
+
+      See documentation above about CRs and workflows for failing allocation tests. *)
+  val require_no_allocation
+    :  ?hide_positions:bool (** default is [false] *)
+    -> Source_code_position.t
+    -> (unit -> 'a)
+    -> 'a
+
+  (**/**)
 
   (** This module is called [Expect_test_helpers_kernel_private] rather than [Private]
       because [include Expect_test_helpers_kernel] is a common idiom, and we don't want to
