@@ -291,6 +291,13 @@ let%expect_test "[replace_s]" =
       (src $ROOT/app/foo/file.txt))) |}]
 ;;
 
+let%expect_test "hide_temp_files_in_string" =
+  "/usr/local/home/non-user.tmp.abcXYZ/file.tmp.r2c3p0.gz"
+  |> hide_temp_files_in_string
+  |> print_endline;
+  [%expect {| /usr/local/home/non-user.tmp.RANDOM/file.tmp.RANDOM.gz |}]
+;;
+
 let%expect_test "[on_print_cr]" =
   let cr = CR.Comment in
   let hide_positions = true in

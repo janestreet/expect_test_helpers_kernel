@@ -63,6 +63,11 @@ module Sexp_style = struct
   ;;
 end
 
+let hide_temp_files_in_string =
+  let re = lazy (Re.compile (Re.seq [ Re.str ".tmp."; Re.repn Re.alnum 6 (Some 6) ])) in
+  fun string -> Re.replace_string (force re) ~by:".tmp.RANDOM" string
+;;
+
 let hide_positions_in_string =
   let module Re = Re.Pcre in
   let expanders =
